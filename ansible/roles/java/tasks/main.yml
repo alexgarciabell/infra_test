@@ -1,0 +1,134 @@
+# Install Java
+# TODO: Rework the installing of Java versions since the static ones should be converted fully to variables
+
+- name: Uninstall Old Java if it is present
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: absent
+    lock_timeout: 180
+  loop:
+    - java-1.7.0-openjdk.x86_64
+    
+- name: Download Corretto OpenJDK Yum Repo Key
+  shell: sudo rpm --import https://yum.corretto.aws/corretto.key
+  become: true
+
+- name: Configure Corretto OpenJDK Yum Repo
+  shell: sudo curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo
+  become: true
+
+- name: Installing Java 8
+  become: true
+  yum:
+    name: java-1.8.0-amazon-corretto.x86_64
+    state: present
+    lock_timeout: 180
+  when: java_url is undefined and java_file is undefined and java_package is undefined
+
+- name: Installing passed java_package
+  become: true
+  yum:
+    name: "{{ java_package }}"
+    state: present
+  when: java_package is defined
+
+- name: Creating Java folder in ansible-relics
+  become: true
+  file:
+    path: /home/xdeploy/ansible-relics/java/
+    state: directory
+  when: (java_url is defined or java_file is defined) and java_package is undefined
+
+- name: Installing Java from provided URL
+  become: true
+  get_url:
+    url: "{{ java_url }}"
+    dest: /home/xdeploy/ansible-relics/java/
+  when: java_url is defined and java_package is undefined
+
+- name: Copying Java tarball
+  become: true
+  copy:
+    src: "../files/{{ java_file }}"
+    dest: /home/xdeploy/ansible-relics/java/
+  when: java_file is defined and java_url is undefined and java_package is undefined
+
+- name: Finding Java tarball
+  become: true
+  find:
+    paths: /home/xdeploy/ansible-relics/java/
+    recurse: no
+    file_type: file
+    use_regex: no
+    patterns: "*.tar.gz"
+  register: directories
+  when: (java_file is defined or java_url is defined) and java_package is undefined
+
+- debug:
+    msg: "Found file:= {{ directories.files[0].path }}"
+  when: (java_file is defined or java_url is defined) and java_package is undefined
+
+- name: Creating /opt/java/
+  become: true
+  file:
+    path: /opt/java/
+    state: directory
+  when: (java_file is defined or java_url is defined) and java_package is undefined
+
+- name: Unarchiving tarball
+  become: true
+  unarchive:
+    src: "{{ directories.files[0].path }}"
+    remote_src: true
+    dest: /opt/java/
+  when: (java_file is defined or java_url is defined) and java_package is undefined
+
+# CCP: this is needed for CCP only (CentOS-7 ?), otherwise users can not access /opt/java/ directory
+- name: chmod for /opt/java/
+  shell: sudo chmod -R 755 /opt/java/
+  when: (java_file is defined or java_url is defined) and java_package is undefined
+  become: true
+
+- name: Finding Java directory
+  become: true
+  find:
+    paths: /opt/java/
+    recurse: no
+    file_type: directory
+    use_regex: no
+    patterns: "*"
+  register: directories
+  when: (java_file is defined or java_url is defined) and java_package is undefined
+
+- name: Setting Java alternative
+  become: true
+  alternatives:
+    name: java
+    path: "{{ directories.files[0].path }}/bin/java"
+    link: /usr/bin/java
+  when: (java_file is defined or java_url is defined) and java_package is undefined
+
+# temporary workaround solution to let service hosts to interact with SATToken service
+- name: registring java.config file stats
+  stat:
+    path: "/etc/crypto-policies/back-ends/java.config"
+  register: javaconfigfile
+
+- name: Remove SHA1 from jdk.certpath.disabledAlgorithms
+  lineinfile:
+    path: "/etc/crypto-policies/back-ends/java.config"
+    regexp: '^(jdk.certpath.disabledAlgorithms=.*)SHA1, (.*|$)'
+    line: '\1\2'
+    backrefs: true
+  become: true
+  when: javaconfigfile.stat.exists == True
+
+- name: Remove SHA1 from jdk.certpath.disabledAlgorithms if tail place
+  lineinfile:
+    path: "/etc/crypto-policies/back-ends/java.config"
+    regexp: '^(jdk.certpath.disabledAlgorithms=.*), SHA1(.*|$)'
+    line: '\1\2'
+    backrefs: true
+  become: true
+  when: javaconfigfile.stat.exists == True

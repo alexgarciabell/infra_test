@@ -1,0 +1,55 @@
+As of 10-06-2025:
+
+Scylla:
+
+CI:
+tvxscy-va-blo-test-d10001.iap.r53.xcal.tv - 10.142.237.208
+tvxscy-va-blo-test-d10002.iap.r53.xcal.tv - 10.142.237.197
+tvxscy-va-blo-test-d10003.iap.r53.xcal.tv - 10.142.237.210
+
+PROD:
+East:
+tvxscy-ae-blueocean-prod-d10001.iap.r53.xcal.tv - 100.91.130.250
+tvxscy-ae-blueocean-prod-d10002.iap.r53.xcal.tv - 100.91.130.207
+tvxscy-ae-blueocean-prod-d10003.iap.r53.xcal.tv - 100.91.130.205
+tvxscy-ae-blueocean-prod-d10004.iap.r53.xcal.tv - 100.91.130.199
+tvxscy-ae-blueocean-prod-d10005.iap.r53.xcal.tv - 100.91.130.232
+Ohio:
+tvxscy-oh-blueocean-prod-d10001.iap.r53.xcal.tv - 100.90.146.98
+tvxscy-oh-blueocean-prod-d10002.iap.r53.xcal.tv - 100.90.146.76
+tvxscy-oh-blueocean-prod-d10003.iap.r53.xcal.tv - 100.90.146.112
+tvxscy-oh-blueocean-prod-d10004.iap.r53.xcal.tv - 100.90.146.96
+tvxscy-oh-blueocean-prod-d10005.iap.r53.xcal.tv - 100.90.146.105
+West:
+tvxscy-or-blueocean-prod-d10001.iap.r53.xcal.tv - 100.91.87.167
+tvxscy-or-blueocean-prod-d10002.iap.r53.xcal.tv - 100.91.87.169
+tvxscy-or-blueocean-prod-d10003.iap.r53.xcal.tv - 100.91.87.171
+tvxscy-or-blueocean-prod-d10004.iap.r53.xcal.tv - 100.91.87.175
+tvxscy-or-blueocean-prod-d10005.iap.r53.xcal.tv - 100.91.87.183
+
+Cassandra:
+
+CI:
+tvxcas-va-blo-test-d10001.iap.r53.xcal.tv - 10.142.237.227
+tvxcas-va-blo-test-d10002.iap.r53.xcal.tv - 10.142.237.233
+tvxcas-va-blo-test-d10003.iap.r53.xcal.tv - 10.142.237.202
+
+PROD:
+East:
+tvxcas-ae-blueocean-prod-d10001.iap.r53.xcal.tv - 100.91.130.242
+tvxcas-ae-blueocean-prod-d10002.iap.r53.xcal.tv - 100.91.130.233
+tvxcas-ae-blueocean-prod-d10003.iap.r53.xcal.tv - 100.91.130.222
+tvxcas-ae-blueocean-prod-d10004.iap.r53.xcal.tv - 100.91.130.238
+tvxcas-ae-blueocean-prod-d10005.iap.r53.xcal.tv - 100.91.130.248
+Ohio:
+tvxcas-oh-blueocean-prod-d10001.iap.r53.xcal.tv - 100.90.146.74
+tvxcas-oh-blueocean-prod-d10002.iap.r53.xcal.tv - 100.90.146.97
+tvxcas-oh-blueocean-prod-d10003.iap.r53.xcal.tv - 100.90.146.118
+tvxcas-oh-blueocean-prod-d10004.iap.r53.xcal.tv - 100.90.146.117
+tvxcas-oh-blueocean-prod-d10005.iap.r53.xcal.tv - 100.90.146.72
+West:
+tvxcas-or-blueocean-prod-d10001.iap.r53.xcal.tv - 100.91.87.158
+tvxcas-or-blueocean-prod-d10002.iap.r53.xcal.tv - 100.91.87.179
+tvxcas-or-blueocean-prod-d10003.iap.r53.xcal.tv - 100.91.87.134
+tvxcas-or-blueocean-prod-d10004.iap.r53.xcal.tv - 100.91.87.189
+tvxcas-or-blueocean-prod-d10005.iap.r53.xcal.tv - 100.91.87.156

@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# cmd: run-hatsmaker.sh (start|stop|restart|status)
+
+HATSMAKER_HOME=/opt/xcal/apps/hatsmaker
+export JAVA_HOME=/usr/java/latest
+JMX_PORT=10544
+#DEFAULTIFACE=`netstat -rn | grep ^0.0 | awk '{print $8}'`
+#IPADDRESS=`/sbin/ifconfig $DEFAULTIFACE | grep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'`
+IPADDRESS=`ip route get 1.2.3.4 | grep 1.2.3.4 | awk '{print $7}'`
+
+export JAVA_OPTIONS="
+-verbose:gc -XX:+PrintGCDetails -Xloggc:logs/gc.log
+-DforceUpdateOnStartup=true
+-Dcom.sun.management.jmxremote
+-Djava.rmi.server.hostname=$IPADDRESS
+-Dcom.sun.management.jmxremote.port=$JMX_PORT
+-Dcom.sun.management.jmxremote.authenticate=false
+-Dcom.sun.management.jmxremote.ssl=false
+-Dlogback.configurationFile=$HATSMAKER_HOME/conf/logback.xml
+-Xms512m
+-Xmx512m
+-XX:MaxPermSize=192m
+-XX:NewSize=128m
+-XX:MaxNewSize=128m
+-XX:+CMSClassUnloadingEnabled
+-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$HATSMAKER_HOME/logs/hatsmaker-`date +%Y_%m_%d-%H_%M`.heapDump
+"
+
+start() {
+  cd $HATSMAKER_HOME
+  mkdir -p $HATSMAKER_HOME/var
+  mkdir -p $HATSMAKER_HOME/logs
+  nohup java $JAVA_OPTIONS -cp $HATSMAKER_HOME/conf:$HATSMAKER_HOME/lib/* com.comcast.Main >> logs/stdout.log 2>> logs/stderr.log &
+  PID=$!
+  disown $PID
+  echo $PID > $HATSMAKER_HOME/var/hatsmaker.pid
+}
+
+stop() {
+  pkill -f $HATSMAKER_HOME/logs
+  pkill -9 -f $HATSMAKER_HOME/logs
+  rm $HATSMAKER_HOME/var/hatsmaker.pid
+}
+
+case "$1" in
+  "start")
+    start
+    ;;
+  "stop")
+    stop
+    ;;
+  "restart")
+    stop
+    start
+    ;;
+esac
+exit 0

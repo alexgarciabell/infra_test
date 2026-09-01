@@ -1,0 +1,63 @@
+#!/bin/bash
+IMDS_TEMP_TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+INSTANCE_ID=`curl -s -H "X-aws-ec2-metadata-token: $IMDS_TEMP_TOKEN" -X GET "http://169.254.169.254/latest/meta-data/instance-id"`
+REGION=`curl -s -H "X-aws-ec2-metadata-token: $IMDS_TEMP_TOKEN" -X GET "http://169.254.169.254/latest/dynamic/instance-identity/document" | grep '\"region\"' | cut -d\" -f4`
+INSTANCE_AZ=`curl -s -H "X-aws-ec2-metadata-token: $IMDS_TEMP_TOKEN" -X GET "http://169.254.169.254/latest/meta-data/placement/availability-zone"`
+HOSTNAME_GATHER=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Name" --region=$REGION --output=text | cut -f5)
+EC2_LOCAL_IPV4=`curl -s -H "X-aws-ec2-metadata-token: $IMDS_TEMP_TOKEN" -X GET "http://169.254.169.254/latest/meta-data/local-ipv4"`
+#This will generate a random number from 10000000 to 99999999. Note that this command is independent of other instances.
+#RAND_HOSTNUM=$(shuf -i 10000000-99999999 -n1)
+#This should use the IPv4 address of the instance, without the fullstops. Though IPs can be reused, they do not exist at the same time.
+RAND_HOSTNUM=$(echo "$EC2_LOCAL_IPV4" | sed 's/\.//g')
+RAND_HOSTNUM+=$(shuf -i 100-999 -n1)
+#Create a new hostname that contains a unique numerical component. Note that the Name tag must contain asghost where the numerical identifier would be.
+HOSTNAME=$(echo "$HOSTNAME_GATHER" | sed "s/asghost/$RAND_HOSTNUM/g")
+aws ec2 create-tags --region $REGION --resources $INSTANCE_ID --tags Key=Hostname,Value=$HOSTNAME
+echo "======================"
+echo "Hostname Config"
+echo "======================"
+if grep -q "Amazon Linux release 2" /etc/system-release; then
+  echo "Running hostnamectl set-hostname command"
+  hostnamectl set-hostname $HOSTNAME
+else
+  echo "Running hostname command"
+  hostname $HOSTNAME
+fi
+echo "Updating /etc/sysconfig/network file"
+echo NETWORKING=yes > /etc/sysconfig/network
+echo -n HOSTNAME=$HOSTNAME >> /etc/sysconfig/network
+echo "127.0.0.1 localhost localhost.localdomain" > /etc/hosts
+echo "$EC2_LOCAL_IPV4 $HOSTNAME" >> /etc/hosts
+echo "======================"
+echo ""
+
+cd /tmp/packer-provisioner-ansible-local
+# Change to the latest created that contain ansible playbooks
+cd "$(\ls -1dt ./*/ | head -n 1)"
+cat > extravars.yml <<EOF
+---
+
+appName: blueocean
+datacenter: ae
+dataQueueUrl: https://sqs.us-east-1.amazonaws.com/788354415550/blueocean-sqs-ae-prod-2025-v1
+cassandraSeeds: 100.91.130.248,100.91.130.242,100.91.130.238,100.91.130.233,100.91.130.222
+dbDatacenter: AE
+altCassandraSeeds: 100.91.130.248,100.91.130.242,100.91.130.238,100.91.130.233,100.91.130.222
+altDBDatacenter: AE
+migrationPhase: 3
+keystore_1_path: /opt/xcal/apps/blueocean/keystore/c5x_keystore.jks
+truststore_1_path: /opt/xcal/apps/blueocean/keystore/c5x_truststore.jks
+keystore_2_path: /opt/xcal/apps/blueocean/keystore/c5x_keystore.jks
+truststore_2_path: /opt/xcal/apps/blueocean/keystore/c5x_truststore.jks
+env_type: prod
+run_number: b
+EOF
+
+ansible-playbook -vvvv --connection=local --inventory 127.0.0.1, blueocean.yml --extra-vars "@extravars.yml" > local_2nd_ansible_run.txt
+
+# CleanUp
+echo "======================"
+echo "Clean Up Tasks"
+echo "======================"
+echo "Restart Network service"
+service network restart

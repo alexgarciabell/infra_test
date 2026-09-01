@@ -1,0 +1,8 @@
+HTTP/1.0 405 Method Not Allowed
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+
+<html><body><h1>405 Method Not Allowed</h1>
+The requested resource does not support http method 'HEAD'.
+</body></html>

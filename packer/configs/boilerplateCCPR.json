@@ -1,0 +1,86 @@
+{
+  "variables": {
+    "ccptoken": "{{env `CCPTOKEN`}}",
+    "ccpacct": "{{env `CCPACCT`}}",
+    "tenant": "{{env `TENANT`}}",
+    "ccpregion": "{{env `REGION`}}",
+    "rail": "{{env `RAIL`}}",
+    "ccpaz": "az1",
+    "cmi-name": "icfar-boilerplate-{{isotime \"02-Jan-2006-03-04-05\"}}"
+  },
+
+  "builders": [
+    {
+      "xcloud_account": "{{user `ccpacct`}}",
+      "in_tenant": "{{user `tenant`}}",
+      "region": "{{user `ccpregion`}}",
+      "in_rail": "{{user `rail`}}",
+      "az": "{{user `ccpaz`}}",
+      "token": "{{user `ccptoken`}}",
+      "name": "xcloud-{{user `ccpregion`}}",
+      "template_name": "{{user `cmi-name`}}",
+      "deployment_name": "{{user `cmi-name`}}",
+      "reason": "Deploy VM {{user `cmi-name`}}",
+      "description": "Packer Made Image {{user `cmi-name`}}",
+      "vm_name": "{{user `cmi-name`}}",
+      "type": "xcloud",
+      "catalog": "Linux",
+      "in_CMI": "Comcast-Rocky-8",
+      "api": "https://api.ccp.comcast.com/api",
+      "id_timeout": 90,
+      "shutdown_timeout": 120,
+      "template_timeout": 90,
+      "ip_timeout": 10,
+      "delete_vm": true,
+      "in_count": 1,
+      "in_flavor": "CC.1cpu-1GB",
+      "in_boot_capacity": 50,
+      "in_ipv": "IPv4_IPv6",
+      "in_tags": "ccp:6.0",
+      "in_config": "CCPRcloudconfig.yaml",
+      "communicator": "ssh",
+      "ssh_bastion_host": "jump-tsf.autobahn.comcast.com",
+      "ssh_bastion_port": "22",
+      "ssh_port": "22",
+      "ssh_timeout": "3m",
+      "ssh_username": "rocky",
+      "ssh_bastion_username": "svcAutobahn",
+      "ssh_bastion_agent_auth": true,
+      "ssh_agent_auth": true
+    }
+  ],
+
+  "provisioners": [
+    {
+      "type": "shell",
+      "remote_folder": "/home/rocky",
+      "execute_command": "chmod 755 {{ .Path }}; {{ .Vars }} {{ .Path }}",
+      "inline": [
+        "sudo systemctl stop EracentEDAService.service",
+        "sudo systemctl stop EracentEPAService.service",
+
+        "sudo cloud-init status --wait; sleep 30; sudo cloud-init clean -l",
+        "sudo systemctl enable cloud-init-re-exec.service",
+
+        "sudo yum install -y python3",
+        "which python3",
+        "which pip3",
+
+        "sudo pip3 install -U setuptools",
+        "sudo pip3 install ansible",
+        "sudo pip3 install hvac",
+        "sudo pip3 install lxml",
+
+        "sudo chmod -R 755 /usr/local/lib/python3.6",
+
+        "sudo /etc/cloud/clean.sh"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_dir": "../../ansible/plays/",
+      "playbook_file": "../../ansible/plays/boilerplateCCPR.yml",
+      "role_paths": ["../../ansible/roles/boilerplateCCPR", "../../ansible/roles/atlas-yumrepoCCP", "../../ansible/roles/eracent-cleaner", "../../ansible/roles/vector", "../../ansible/roles/autobahn-config"]
+    }
+  ]
+}

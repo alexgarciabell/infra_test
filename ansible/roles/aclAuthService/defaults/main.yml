@@ -1,0 +1,29 @@
+# defaults file for aclAuthService
+run_number: 1
+local_dir: /opt/storage/deploy/appsDS
+service_install_dir: "/opt/xcal/apps/{{ service_name }}"
+jetty_install_dir: "/opt/xcal/apps/"
+properties_dir: "{{ service_install_dir }}"
+env_type: ci
+datacenter: ae
+use_vault: false
+environment_name: "{{ env_type }}-{{ datacenter }}"
+branch: "{{ deploy_branch }}"
+artifact_repo: https://artifactory.comcast.com/artifactory/x1IcsCoreServices-libs-releases/
+owner_user: xdeploy
+sleep_time: 0
+service_listen_port: 10551
+service_jmx_port: 10552
+service_stop_port: 10553
+heapMin: 2048m
+heapMax: 2048m
+heapNewSize: 512m
+heapMaxNewSize: 512m
+maxMetaspaceSize: 192m
+extra_jvm_args: ""
+service_name: aclAuthService
+artifact_group_id: com.comcast.serviceaccess
+artifact_id: serviceaccess-admin
+artifact_version: 2.2.0
+vector_systemd_memory_max: 512000000
+vector_systemd_cpu_quota: 20%

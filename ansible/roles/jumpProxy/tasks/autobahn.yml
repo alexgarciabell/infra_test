@@ -1,0 +1,51 @@
+---
+- name: Download certificate authority public keys for Autobahn
+  get_url:
+    url: https://yumrepo.sys.comcast.net/productsecurity/autobahn/ca.pub
+    dest: /etc/ssh/autobahn_ca_keys.pub
+    mode: 0644
+  become: true
+
+- name: Configuring SSHD
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    line: "{{ item }}"
+  loop:
+    - TrustedUserCAKeys /etc/ssh/autobahn_ca_keys.pub
+    - AuthorizedPrincipalsFile /etc/ssh/authorized_principals/%u
+
+- name: Create authorized_principals dir
+  become: true
+  ansible.builtin.file:
+    path: /etc/ssh/authorized_principals
+    state: directory
+    mode: '0755'
+
+- name: Creating authorized_principals files for all our users for CCP
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    line: coast.coast-services.coast
+    create: yes
+    mode: 0644
+  loop:
+    - /etc/ssh/authorized_principals/rocky
+    - /etc/ssh/authorized_principals/xdeploy
+    - /etc/ssh/authorized_principals/xvpcs
+    - /etc/ssh/authorized_principals/coast
+  when: platform == "ccp"
+
+- name: Creating authorized_principals files for all our users for AWS
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    line: coast.coast-services.coast
+    create: yes
+    mode: 0644
+  loop:
+    - /etc/ssh/authorized_principals/ec2-user
+    - /etc/ssh/authorized_principals/xdeploy
+    - /etc/ssh/authorized_principals/xvpcs
+    - /etc/ssh/authorized_principals/coast
+  when: platform == "aws"

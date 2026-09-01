@@ -1,0 +1,62 @@
+# Install Atlas Yum Repositories
+
+#- name: "Include Atlas Repo - FAR (AMZN Linux 2)"
+#  yum_repository:
+#    name: "{{ item.name }}"
+#    description: "{{ item.desc }}"
+#    baseurl: "{{ item.baseurl }}"
+#    gpgcheck: no
+#    enabled: yes
+#    proxy: _none_
+#    priority: 1
+#  with_items:
+#   - { name: "appds-prod", baseurl: "https://yumrepo.sys.comcast.net/appds_repo/far/amznlnx2", desc: "Apps Data Services (FAR) Production Packages for $releasever $basearch"}
+#  become: yes
+#  become_user: root
+#  notify: yum-clean-metadata
+
+- name: "Include Atlas Repo - /production/x86_64/7  (CentOS 7)"
+  yum_repository:
+    name: "{{ item.name }}"
+    description: "{{ item.desc }}"
+    baseurl: "{{ item.baseurl }}"
+    gpgcheck: no
+    enabled: yes
+    proxy: _none_
+    priority: 1
+  with_items:
+    - { name: "appds-prod", baseurl: "https://yumrepo.sys.comcast.net/appds_repo/production/x86_64/7", desc: "Apps Data Services Production Packages for $releasever $basearch"}
+  become: yes
+  become_user: root
+  notify: yum-clean-metadata
+
+
+#- name: "Include Atlas Repo - Crowdstrike (AMZN Linux 2)"
+#  yum_repository:
+#    name: "{{ item.name }}"
+#    description: "{{ item.desc }}"
+#    baseurl: "{{ item.baseurl }}"
+#    gpgcheck: no
+#    enabled: yes
+#    proxy: _none_
+#    priority: 1
+#  with_items:
+#  - { name: "endpointsec-crowdstrike", baseurl: "https://yumrepo.sys.comcast.net/endpointsecurity/crowdstrike/amazon/2/x86_64/", desc: "Crowdstrike (Amazon Linux 2 - x64)"}
+#  become: yes
+#  become_user: root
+#  notify: yum-clean-metadata
+
+#- name: "Include Atlas Repo - OPENS (AMZN Linux 2)"
+#  yum_repository:
+#    name: "{{ item.name }}"
+#    description: "{{ item.desc }}"
+#    baseurl: "{{ item.baseurl }}"
+#    gpgcheck: no
+#    enabled: yes
+#    proxy: _none_
+#    priority: 1
+#  with_items:
+#  - { name: "endpointsec-opens", baseurl: "https://yumrepo.sys.comcast.net/endpointsecurity/opens/amazon/2/", desc: "OPENS (Amazon Linux 2)"}
+#  become: yes
+#  become_user: root
+#  notify: yum-clean-metadata

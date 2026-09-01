@@ -1,0 +1,12 @@
+---
+#OPENS Base Install
+- name: Install OPENS
+  yum:
+    name: opens-osqueryd
+    state: latest
+  become: true
+
+- name: Check OPENS install status
+  shell: "systemctl status opens-osqueryd.service"
+  become: true
+  when: opens_installed is defined

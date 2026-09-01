@@ -1,0 +1,12 @@
+---
+- hosts: all
+  roles:
+    - { role: java, when: run_number == "a" }
+    - { role: jetty, when: run_number == "a" }
+    - configuratorAdminService
+    - eracent-installer
+
+  vars:
+    java_package: "java-1.8.0-amazon-corretto-devel"
+    jetty_version: "9.4.7.v20170914"
+    swidtag_file: "XRE_Configurator.swidtag"

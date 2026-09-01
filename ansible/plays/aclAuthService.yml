@@ -1,0 +1,11 @@
+---
+- hosts: all
+  roles:
+    - aclAuthNginx
+    - { role: java, when: run_number == 1 }
+    - { role: jetty, when: run_number == 1 }
+    - aclAuthService
+
+  vars:
+    java_package: "java-1.8.0-openjdk.x86_64"
+    jetty_version: "9.4.7.v20170914"

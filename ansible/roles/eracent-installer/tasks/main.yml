@@ -1,0 +1,56 @@
+- name: Create directory for Eracent SWID file
+  file:
+    path: "/usr/share/comcast"
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+    state: directory
+    mode: 0755
+  become: true
+
+- name: Copy Eracent SWID file
+  copy:
+    src: "{{ swidtag_file }}.j2"
+    dest: "/usr/share/comcast/{{ swidtag_file }}"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+  become: true
+  when: run_number == "b"
+
+- name: Install the Eracent rpm from a remote repo
+  become: true
+  yum:
+    name: https://yumrepo.sys.comcast.net/appds_repo/far/eracent/LINUX_x86_64_ClientsInstaller_3_EPA_EDA-11.11.5.0-0.x86_64.rpm
+    state: present
+    disable_gpg_check: true
+  when: run_number == "b"
+
+- name: Check the size of the schedules.ini file
+  become: true
+  ansible.builtin.stat:
+    path: /opt/Eracent/EPA/conf/schedules.ini
+  register: schedules
+  when: run_number == "b"
+
+- name: Remove schedules.ini empty file created by Eracent Agent installation for config reload
+  become: true
+  ansible.builtin.file:
+    path: /opt/Eracent/EPA/conf/schedules.ini
+    state: absent
+  when: run_number == "b" and schedules.stat.exists and schedules.stat.size == 0
+
+- name: Restart EracentEDAService
+  service:
+    name: "EracentEDAService.service"
+    state: restarted
+    enabled: yes
+  become: true
+  when: run_number == "b"
+
+- name: Restart EracentEPAService
+  service:
+    name: "EracentEPAService.service"
+    state: restarted
+    enabled: yes
+  become: true
+  when: run_number == "b"

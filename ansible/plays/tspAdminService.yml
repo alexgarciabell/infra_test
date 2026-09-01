@@ -1,0 +1,10 @@
+---
+- hosts: all
+  roles:
+    - { role: java, when: run_number == "a" }
+    - { role: jetty, when: run_number == "a" }
+    - tspAdminService
+
+  vars:
+    java_package: "java-11-amazon-corretto"
+    jetty_version: "9.4.50.v20221201"

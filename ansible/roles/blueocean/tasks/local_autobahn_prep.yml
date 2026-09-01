@@ -1,0 +1,47 @@
+#Ideally, this should be a role in itself and set up for each service. However, this should be run when the host is
+# being created, not when the image is. If roles in playfiles be optional, then follow that approach instead.
+
+- name: Replace AuthorizedKeysFile Config For Autobahn Specs
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^AuthorizedKeysFile.*\.ssh\/authorized_keys$"
+    line: "{{ item }}"
+  loop:
+    - "#BEGIN XVP CS BOILERPLATE CONFIGS"
+    - "#AuthorizedKeysFile .ssh/authorized_keys"
+    - "AuthorizedKeysFile /etc/ssh/authorized_keys/%u"
+    - "#END XVP CS BOILERPLATE CONFIGS"
+
+- name: Clean Up Authorized Keys Files For All Users
+  become: true
+  ansible.builtin.shell: |
+    authkeyfiles=(/home/*/.ssh/authorized_keys*);
+
+    for i in "${authkeyfiles[@]}";
+      do
+        echo -e "Found: " $i"\n";
+        cat $i;
+        echo -e "";
+      done;
+
+    echo -e "---------";
+
+    #Clear the authorized_keys files
+    for i in "${authkeyfiles[@]}";
+      do
+        echo -e "Clearing: " $i;
+        cat /dev/null > $i;
+      done;
+
+    echo -e "---------";
+
+    #Re-checking all found authorized_keys files
+    for i in "${authkeyfiles[@]}";
+      do
+        echo -e "Rechecking: " $i"\n";
+        cat $i;
+        echo -e "";
+      done;
+  args:
+    executable: /bin/bash

@@ -1,0 +1,54 @@
+- name: Replace vector.service system file for systemd
+  template: src=vector.service.j2 dest=/etc/systemd/system/vector.service mode=0755
+  become: true
+
+- name: registring toml files stats
+  stat:
+    path: /etc/vector/source.toml
+  register: toml_file
+
+- name: Cloning a observability github repository
+  git:
+    repo: 'https://{{ ghe_access_token }}@github.com/comcast-xvp-cs/observability_blueocean.git'
+    dest: /tmp/vector
+    clone: yes
+    update: yes
+  when: toml_file.stat.exists== False
+
+- name: copying the toml files
+  shell: sudo cp /tmp/vector/vector/blueocean/*.toml ./roles/blueocean/templates/
+  when: toml_file.stat.exists== False
+
+- name: copying toml files from templates to etc/vector
+  template:
+    src: "{{ item.src }}"
+    dest: /etc/vector/
+  loop:
+    - { src: '../templates/source.toml' }
+    - { src: '../templates/global.toml' }
+    - { src: '../templates/internal.toml' }
+    - { src: '../templates/sink.toml' }
+    - { src: '../templates/transforms.toml' }
+  when: toml_file.stat.exists== False
+  become: true
+
+- name: Deleting cloned repo content & directory
+  file:
+    state: absent
+    path: /tmp/vector
+  when: toml_file.stat.exists== False
+
+- name: Removing Vector.toml file
+  file:
+    path: /etc/vector/vector.toml
+    state: absent
+  become: true
+
+- name: restart vector
+  command: systemctl restart vector
+  become: true
+
+- name: Ensure vector is running and enabled
+  service: name=vector state=started enabled=yes
+  become: true
+  tags: Install_Vector

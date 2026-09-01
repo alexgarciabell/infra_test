@@ -1,0 +1,2 @@
+[user_info]
+{{ lookup('hashi_vault', 'secret=secret/appds/sfadmin:value auth_method=approle role_id=sfadmin secret_id=None url=https://current.vault.do.xcal.tv:8443') }}

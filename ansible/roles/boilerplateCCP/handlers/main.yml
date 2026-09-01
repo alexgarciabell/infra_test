@@ -1,0 +1,7 @@
+---
+# handlers file for boilerplate
+- name: Restart SSH
+  become: true
+  service:
+    name: sshd
+    state: restarted

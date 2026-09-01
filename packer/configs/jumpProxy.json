@@ -1,0 +1,101 @@
+{
+  "variables": {
+    "aws_access_key": "{{env `bamboo_AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `bamboo_AWS_SECRET_ACCESS_KEY`}}",
+    "vpc_id": "{{env `VPC_ID`}}",
+    "subnet_id": "{{env `SUBNET_ID`}}",
+    "ec2_region": "{{env `EC2_REGION`}}",
+    "ami_name": "icfar-jumpproxy-{{isotime \"02-Jan-2006-03-04-05\"}}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "vpc_id": "{{user `vpc_id`}}",
+      "region": "{{user `ec2_region`}}",
+      "subnet_id": "{{user `subnet_id`}}",
+      "source_ami_filter": {
+        "filters": {
+          "virtualization-type": "hvm",
+          "architecture": "x86_64",
+          "name": "Comcast Amazon Linux 2 -*",
+          "root-device-type": "ebs"
+        },
+        "owners": ["713513710664"],
+        "most_recent": true
+      },
+      "instance_type": "m5.large",
+      "ssh_username": "ec2-user",
+      "ami_name": "{{user `ami_name` | clean_resource_name}}",
+      "ami_description": "{{user `ami_name`}}",
+      "ami_regions": ["us-east-1", "us-east-2", "us-west-2"],
+      "tags": {
+        "Name": "{{user `ami_name`}}",
+        "date-created": "{{isotime \"02-Jan-2006\"}}",
+        "packer-generated": "true",
+        "stable": "true",
+        "built_from_ami_name": "{{.SourceAMIName}}",
+        "opens": "true",
+        "crowdstrike": "true",
+        "splunk": "false",
+        "vector": "false",
+        "elasticsearch": "false",
+        "notes": "Jump proxy host for XVP CS"
+      },
+      "run_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "run_volume_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "snapshot_tags": {
+        "Name": "{{user `ami_name`}}",
+        "date-created": "{{isotime \"02-Jan-2006\"}}",
+        "packer-generated": "true",
+        "stable": "true",
+        "built_from_ami_name": "{{.SourceAMIName}}",
+        "opens": "true",
+        "crowdstrike": "true",
+        "splunk": "false",
+        "vector": "false",
+        "elasticsearch": "false",
+        "notes": "Jump proxy host for XVP CS - Snapshot"
+      },
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/xvda",
+          "encrypted": "false",
+          "volume_size": "20",
+          "volume_type": "gp3",
+          "delete_on_termination": true
+        }
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "sudo yum install -y python-pip",
+        "sudo pip install -U pip setuptools",
+        "sudo pip install ansible",
+        "sudo pip install --ignore-installed hvac==0.4.0",
+        "sudo pip install lxml"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_dir": "../../ansible/plays/",
+      "playbook_file": "../../ansible/plays/jumpProxy.yml",
+      "role_paths": ["../../ansible/roles/jumpProxy", "../../ansible/roles/atlas-yumrepo"]
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "jumpProxy_result_{{isotime \"02-Jan-2006\"}}.json",
+      "strip_path": true
+    }
+  ]
+}

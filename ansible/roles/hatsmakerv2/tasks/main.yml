@@ -1,0 +1,212 @@
+---
+# tasks file for hatsmaker
+
+- name: Create hatsmaker directory structure
+  become: true
+  file:
+    path: "{{ install_dir }}"
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+    state: directory
+    mode: 0755
+
+- name: "Download HATSMaker from artifact repository - {{ group_name }}:{{ artifact_name }}:{{ artifact_version }}"
+  become: true
+  maven_artifact:
+    group_id:       "{{ group_name }}"
+    artifact_id:    "{{ artifact_name }}"
+    classifier:     "{{ classifer }}"
+    extension:      tar.gz
+    timeout:        10
+    version:        "{{ artifact_version }}"
+    repository_url: "{{ nexus_repo_master }}"
+    dest:           "/opt/xcal/apps/{{ artifact_name }}-{{ artifact_version }}.tar.gz"
+    owner:          "{{ owner_user }}"
+    group:          "{{ owner_user }}"
+    verify_checksum: "never"
+    username: "svc_ics_far_squad"
+    password: "{{ lookup('hashi_vault', 'secret=secret/appds/far/artifactory:value auth_method=approle role_id=far secret_id=None url=https://current.vault.do.xcal.tv:8443') }}"
+
+- name: Unarchiving HATSmaker
+  become: true
+  unarchive:
+    src:            /opt/xcal/apps/{{ artifact_name }}-{{ artifact_version }}.tar.gz
+    remote_src:     true
+    dest:           /opt/xcal/apps
+    creates:        /opt/xcal/apps/hatsmaker/lib/{{ artifact_name }}-{{ artifact_version }}.jar
+    owner:          "{{ owner_user }}"
+    group:          "{{ owner_user }}"
+
+- name: Create hatsmaker directory structure
+  become: true
+  file:
+    path: "{{ install_dir }}/{{ item }}"
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+    state: directory
+    mode: 0755
+  loop:
+    - bin
+    - conf
+    - lib
+    - logs
+    - templates
+    - var
+    - var/work
+
+- name: Create init script
+  become: true
+  template:
+    src: hatsmaker_init_script.j2
+    dest: "/etc/init.d/hatsmaker"
+    mode: 0755
+    owner: "root"
+    group: "root"
+
+- name: Create executable script
+  become: true
+  template:
+    src: hatsmaker_exec_script.j2
+    dest: "{{ install_dir }}/bin/run-hatsmaker.sh"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+
+- name: Create haproxy config reload executable script
+  become: true
+  copy:
+    src: update-config.sh
+    dest: "{{ install_dir }}/bin/update-config.sh"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+  notify: Restart Hatsmaker
+
+- name: Create hatsmaker property file
+  become: true
+  template:
+    src: hatsmaker_properties.j2
+    dest: "{{ install_dir }}/conf/hatsmaker.properties"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+  notify: Restart Hatsmaker
+
+- name: Override haproxy.cfg
+  become: true
+  copy:
+    src: "{{ install_dir }}/templates/haproxy.cfg"
+    dest: "/etc/haproxy/haproxy.cfg"
+    owner: root
+    group: root
+    mode: 0644
+    remote_src: yes
+  notify: Restart Hatsmaker
+
+- name: Create FreeMarker Template for Hatsmaker
+  become: true
+  template:
+    src: "{{ haproxy_template }}"
+    dest: "{{ install_dir }}/templates/haproxy.ftl"
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart Hatsmaker
+
+- name: Create PEM file - One Cert
+  become: true
+  template:
+    src: haproxy_pem.j2
+    dest: "/etc/haproxy/{{ service_name }}.pem"
+    mode: 0755
+    owner: "root"
+    group: "root"
+  notify: Restart Hatsmaker
+  when: env_certs == "false"
+
+- name: Create PEM file - Environment Cert
+  become: true
+  template:
+    src: haproxy_pem_diffenv.j2
+    dest: "/etc/haproxy/{{ service_name }}.pem"
+    mode: 0755
+    owner: "root"
+    group: "root"
+  notify: Restart Hatsmaker
+  when: env_certs == "true"
+
+- name: Create mTLS pem file
+  become: true
+  template:
+    src: haproxy_pem_mtls.j2
+    dest: "/etc/haproxy/mtlsCombined.pem"
+    mode: 0755
+    owner: "root"
+    group: "root"
+  notify: Restart Hatsmaker
+  when: mtls_mode == "optional" or mtls_mode == "required"
+
+#Note: May only be relevant to TXV-APPDS AE and AW
+- name: Create IPv6 Address script
+  become: true
+  copy:
+    src: createIPv6Addr.sh
+    dest: "/home/xdeploy/createIPv6Addr.sh"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+  notify: Restart Hatsmaker
+
+#Note: May only be relevant to TXV-APPDS AE and AW
+- name: Create IPv6 Address V2 script
+  become: true
+  copy:
+    src: createIPv6AddrV2.sh
+    dest: "/tmp/createIPv6AddrV2.sh"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+  notify: Restart Hatsmaker
+
+- name: Configuring Vector
+  include_tasks: vector.yml
+  when: run_number == "b"
+
+- name: Removing OPENS local DB file
+  shell: rm -rf /var/osquery/osquery.db
+  become: true
+
+- name: Restart OPENS
+  shell: "systemctl restart opens-osqueryd.service"
+  become: true
+
+# Due to the location of the account space and the account metadata, we are assuming a Blue Zone config
+- name: Start up Crowdstrike
+  shell: "systemctl start falcon-sensor"
+  become: true
+
+- name: Enable Crowdstrike
+  shell: "systemctl enable falcon-sensor"
+  become: true
+
+# Be sure to check on whether the hosts have Crowdstrike running in the #crowdstrike Slack channel after a few minutes.
+
+# The /opt/xcal/apps/local_scripts directory should exist and the file config_autobahn_local.sh should be present there
+- name: Running Autobahn Local Configure Script
+  shell: /bin/bash /opt/xcal/apps/local_scripts/config_autobahn_local.sh
+  become: true
+  when: run_number == "b"
+
+# The /opt/xcal/apps/local_scripts directory should exist and the file authkeys_cleanup.sh should be present there
+- name: Running Local Authorized Keys Cleanup Script
+  shell: /bin/bash /opt/xcal/apps/local_scripts/authkeys_cleanup.sh
+  become: true
+  when: run_number == "b"
+
+# Restart SSH since the configs were updated
+- name: Restart SSH
+  become: true
+  service:
+    name: sshd
+    state: restarted
+  when: run_number == "b"

@@ -1,0 +1,4 @@
+---
+hubble_client_vector_dir: /etc/vector/config
+hubble_client_vector_config_format: toml
+hubble_client_vector_config: vector.{{ hubble_client_vector_config_format}}

@@ -1,0 +1,51 @@
+---
+# tasks file for boilerplate
+- name: Installing basic apps
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - unzip
+    - nc
+    - vi
+    - nano
+    - git
+    - tcpdump
+    - wget
+    - curl
+    - traceroute
+    - tcptraceroute
+    - sysstat
+
+- name: Updating known packages to latest
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: latest
+    disable_gpg_check: true
+  loop:
+    - falcon-sensor
+
+- name: Restart ntp
+  command: sudo systemctl restart ntpd
+
+# CCP: if executing ntpstat after ntp restart then this pause is needed to let ntpstat report synchronised state
+- name: Wait for ntp to do first synchronisation
+  pause:
+    seconds: 65
+
+- name: report the synchronisation state of the NTP daemon
+  shell: ntpstat
+
+- name: Enable ntp demon
+  command: sudo systemctl enable ntpd
+
+- name: Configuring User(s)
+  import_tasks: users.yml
+
+- name: Applying kernel changes
+  import_tasks: kernel.yml
+
+- name: Apply logrotate configurations
+  import_tasks: logrotate_setup.yml

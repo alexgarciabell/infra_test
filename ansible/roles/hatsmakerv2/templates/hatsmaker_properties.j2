@@ -1,0 +1,30 @@
+#General service.properties template for Hatsmaker
+#Normal Properties
+haproxy.command.kill=
+haproxy.maxconn=10000
+hatsmaker.error.retry.interval=20000
+hatsmaker.start.delay=5000
+haproxy.command.reset=sudo {{ install_dir }}/bin/update-config.sh <configfile>
+haproxy.command.validate=/usr/sbin/haproxy -c -V -f <configfile>
+haproxy.log.host=127.0.0.1:1514
+hatsmaker.output.dir=var
+haproxy.pid.file=/var/run/haproxy.pid
+
+hatsmaker.template.defaults=templates/haproxy.cfg
+hatsmaker.template.file=templates/haproxy.ftl
+
+ads.endpoint.codebig={{ads_endpoint_codebig}}
+ads.endpoint.local={{ads_endpoint_local}}
+ads.hatsId={{ hats_id }}
+
+ssl.{{ service_name }}.port={{ service_ssl_port }}
+ssl.{{ service_name }}.backend={{ service_ssl_backend_enabled }}
+ssl.{{ service_name }}.useipv4v6={{ service_ssl_ipv6_enabled }}
+
+satRequesterAcceptFeatures=sat
+satRequesterUrl=https://sat-prod.codebig2.net/v2/oauth/token
+satRequesterMinutesLeftToStartTokenUpdate={{ sat_minutes_left_for_token }}
+satRequesterUserAgent={{ artifact_name }}-{{ artifact_version }}
+
+#Vault Properties
+{{ lookup('hashi_vault', 'secret=/secret/appds/{{ artifact_name }}/far/{{ env_type }}:value auth_method=approle role_id={{ artifact_name }} secret_id=None url=https://current.vault.do.xcal.tv:8443') }}

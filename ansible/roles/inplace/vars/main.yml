@@ -1,0 +1,6 @@
+---
+# vars file for tspAdminService
+inplace_version: "{{ lookup('env', 'inplace_version') }}"
+servicename: "{{ lookup('env', 'servicename') }}"
+artifact_groupid: "{{ lookup('env', 'artifact_groupid') }}"
+artifactid: "{{ lookup('env', 'artifactid') }}"

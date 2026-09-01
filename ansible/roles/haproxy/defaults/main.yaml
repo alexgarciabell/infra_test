@@ -1,0 +1,7 @@
+---
+app_service_port:  80
+app_service_sport: "{{ (app_service_port + 10000) | int }}"
+
+cert_location:     '/etc/haproxy/preferenceDataService.pem'
+
+enable_405_errors: true

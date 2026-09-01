@@ -1,0 +1,20 @@
+[Unit]
+Description=Vector
+Documentation=http://vector.dev
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+{% if hubble_client_config is defined %}
+ExecStart=/usr/bin/vector -c {{ hubble_client_vector_dir }}/*.{{ hubble_client_vector_config_format }}
+{% else %}
+ExecStart=/usr/bin/vector
+{% endif %}
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=no
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=vector
+
+[Install]
+WantedBy=multi-user.target

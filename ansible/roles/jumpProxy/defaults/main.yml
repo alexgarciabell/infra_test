@@ -1,0 +1,4 @@
+# defaults file for appdiscoveryService
+run_number: a
+env_type: ci
+platform: aws

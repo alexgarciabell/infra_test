@@ -1,0 +1,56 @@
+---
+- name: Create target directory
+  file: path=/opt/vector state=directory mode=0755
+  tags: Install_Vector
+   
+- name: Download vector Package
+  get_url:
+   url: '{{ vector_rpm_url }}'
+   dest: /opt/vector/vector-x86_64.rpm
+   mode: '0755'
+  tags: Install Vector
+
+- name: install Vector rpm from a local file
+  yum:
+    name: /opt/vector/vector-x86_64.rpm
+    state: present
+#CCP Rocky: the above rpm can not pass GPG signature check in Rocky
+# so the below option disables the check for now, but this issue should be fixed later
+    disable_gpg_check: true
+
+- name: Copy vector service Template files
+  template: src=vector-centos6.service dest=/etc/init.d/vector mode=0755
+  when: ansible_kernel == "4.9.91-40.57.amzn1.x86_64" or ansible_bios_version == "4.2.amazon"
+  tags: Install_Vector
+ 
+- name: Copy vector service Template files
+  template: src=vector.sh dest=/etc/vector/vector.sh mode=0755
+  when: ansible_kernel == "4.9.91-40.57.amzn1.x86_64" or ansible_bios_version == "4.2.amazon"
+  
+- name: Copy vector service Template files
+  template: src=vector-centos6.service dest=/etc/init.d/vector mode=0755
+  when: ansible_kernel == "4.14.51-60.38.amzn1.x86_64"
+  tags: Install_Vector
+
+- name: Copy vector service Template files
+  template: src=vector.sh dest=/etc/vector/vector.sh mode=0755
+  when: ansible_kernel == "4.14.51-60.38.amzn1.x86_64"
+
+- name: Copy vector service Template files for karoo
+  template: src=vector.service dest=/etc/systemd/system/vector.service mode=0644
+  when: ansible_kernel == "4.14.104-95.84.amzn2.x86_64" or ansible_distribution_version == "(Karoo)" or ansible_distribution_version == "2"
+  notify:
+    - reload systemctl daemon
+  tags: Install_Vector
+  
+- name: Copy vector service Template files for Centos 8
+  template: src=vector.service dest=/usr/lib/systemd/system/vector.service mode=0644
+  notify:
+    - reload systemctl daemon
+  tags: Install_Vector
+  
+- name: template hubble client config
+  include: hubble_client.yml
+#  notify:
+#    - restart vector
+  when: hubble_client_config is defined

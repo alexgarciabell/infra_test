@@ -1,0 +1,54 @@
+---
+# Add our users and any necessary configs - CCP Only
+
+- name: Adding xdeploy user
+  become: true
+  user:
+    name: xdeploy
+    shell: /bin/bash
+
+- name: Adding SSH authorized keys entry for xdeploy user on coast dev jump hosts
+  become: true
+  authorized_key:
+    user: xdeploy
+    key: "{{ lookup('file', '../files/users/id_rsa_coast_dev.pub') }}"
+  #when: not prod
+
+- name: Adding SSH authorized keys entry for xdeploy user on coast prod jump hosts
+  become: true
+  authorized_key:
+    user: xdeploy
+    key: "{{ lookup('file', '../files/users/id_rsa_coast_prod.pub') }}"
+  #when: prod
+
+- name: Allowing password-less sudo access to xdeploy
+  become: true
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "xdeploy ALL"
+    line: "xdeploy ALL=(ALL) NOPASSWD: ALL"
+    state: present
+
+# Note: This is intended to be used with password-less SSH key access. Since there is no password set up, the intention
+#  is to never ask for one. This disables password checks. A better way should be found instead to handle password-less
+#  users as it is possibly a security violation.
+- name: Disable password rotation for xdeploy
+  become: true
+  shell:
+    cmd: chage -M -1 xdeploy
+
+# Note: This is only due to certain applications needing to run as root. Since there is no password set up, the intention
+#  is to never ask for one. This disables password checks. A better way should be found instead to handle password-less
+#  users as it is possibly a security violation.
+- name: Disable password rotation for root
+  become: true
+  shell:
+    cmd: chage -M -1 root
+
+# GDJ - Can remove if this was done only for setting up custom users.
+# An attempt to restart SSHD during the CCP packer build results in error
+#- name: Restart SSH
+#  become: true
+#  service:
+#    name: sshd
+#    state: restarted

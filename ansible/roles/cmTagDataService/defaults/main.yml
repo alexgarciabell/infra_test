@@ -1,0 +1,34 @@
+---
+# defaults file for cmTagDataService
+run_number: a
+local_dir: /opt/storage/deploy/appsDS
+service_install_dir: "/opt/xcal/apps/{{ service_name }}"
+properties_dir: "{{ service_install_dir }}"
+env_type: ci
+datacenter: ae
+environment_name: "{{ env_type }}-{{ datacenter }}"
+branch: "{{ deploy_branch }}"
+artifact_repo: https://artifactory.comcast.com/artifactory/x1IcsCoreServices-libs-releases/
+dest_artifact: "{{ service_name | default('ROOT') }}.war"
+owner_user: xdeploy
+sleep_time: 0
+service_listen_port: 10857
+service_jmx_port: 10858
+service_stop_port: 10859
+heapMin: 2048m
+heapMax: 2048m
+heapMaxPermSize: 192m
+heapNewSize: 512m
+heapMaxNewSize: 512m
+extra_jvm_args: ""
+service_name: cmTagDataService
+artifact_group_id: com.comcast.apps.community-manager
+artifact_id: cm-tag-service-data-service
+artifact_version: 2.46.69
+service_listen_port_ssl: 9481
+java_home: /usr/java/latest
+use_vault: true
+jetty_install_dir: "/opt/xcal/apps/"
+jetty_version: 9.4.7.v20170914
+vector_systemd_memory_max: 1024000000
+vector_systemd_cpu_quota: 20%

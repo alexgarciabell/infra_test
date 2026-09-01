@@ -1,0 +1,25 @@
+Manual Commands:
+
+AWS:
+
+From Jump host:
+
+For Amazon Linux 2023, use run_packer_1.8.7 or run_packer_1.10.3.
+
+Boilerplate:
+PACKER_LOG=1 PACKER_LOG_PATH="boilerplate_aws_<prod, ci>_<date>_<run_num>.txt" run_packer_1.10.3 build -on-error=ask -timestamp-ui -var 'aws_access_key=<IAM User Access Key>' -var 'aws_secret_key=<IAM User Secret Key>' -var 'vpc_id=<VPC Id>' -var 'subnet_id=<Subnet Id>' -var 'ec2_region=<Region (us-west-2 is usually used)>' boilerplate.json
+
+Service:
+PACKER_LOG=1 PACKER_LOG_PATH="<service>_<prod, ci>_<date>_<run_num>.txt" run_packer_1.10.3 build -on-error=ask -timestamp-ui -var 'aws_access_key=<IAM User Access Key>' -var 'aws_secret_key=<IAM User Secret Key>' -var 'vpc_id=<VPC Id>' -var 'subnet_id=<Subnet Id>' -var 'ec2_region=<Region (us-west-2 is usually used)>' -var 'artifact_version=<service_version>' <service>.json
+
+CCP:
+
+From Local:
+
+echo "icfar-boilerplate-"$(date '+%d-%b-%Y-%H-%M-%S') [To get the timestamp to use for all images] <-- boilerplate_cmi_name
+
+PACKER_LOG=1 PACKER_LOG_PATH="boilerplate_ccp_<prod, ci>_<region>_<date>_<run_num>.txt" <Packer 1.10.3> build -on-error=ask -timestamp-ui -var 'ccptoken=<CCP _token>' -var 'ccpacct=<CCP Account Id>' -var 'tenant=<CCP TSF Tenant>' -var 'ccpregion=<ashburn, chicago, hillsboro>' -var 'rail=protected' -var 'cmi-name=<boilerplate_cmi_name>' boilerplateCCPR.json
+
+echo "icfar-<service>-"$(date '+%d-%b-%Y-%H-%M-%S') [To get the timestamp to use for all images] <-- service_cmi_name
+
+PACKER_LOG=1 PACKER_LOG_PATH="<service>_<prod, ci>_<region>_<date>_<run_num>.txt" <Packer 1.10.3> build -on-error=ask -timestamp-ui -var 'ccptoken=<CCP _token>' -var 'ccpacct=<CCP Account Id>' -var 'tenant=<CCP TSF Tenant>' -var 'ccpregion=<ashburn, chicago, hillsboro>' -var 'rail=protected' -var 'artifact_version=<service_version>' -var 'in_cmi=MasterCMILibrary / <boilerplate_cmi_name>' -var 'cmi-name=<cmi_name>' boilerplateCCPR.json

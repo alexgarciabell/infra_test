@@ -1,0 +1,55 @@
+#Install the logrotate application if not already present
+- name: Install logrotate via yum
+  yum:
+    name: logrotate
+    state: present
+  become: true
+
+#Remove the default logrotate daily CRON configuration
+- name: Remove default daily CRON logrotate configuration file /cron.daily/logrotate
+  file:
+    path: /etc/cron.daily/logrotate
+    state: absent
+  become: true
+
+#Add a custom CRON configuration for logrotate - runs every 15 minutes
+#The logrotate application does not have an automated timer, therefore CRON is needed
+
+#- name: Add hourly CRON logrotate configuration file /cron.hourly/logrotate
+#  copy:
+#    src: logrotate_cron
+#    dest: /etc/cron.hourly/logrotate
+#    mode: 0700
+#  become: true
+
+- name: Creating /opt/croncfgs
+  file:
+    path: /opt/croncfgs
+    state: directory
+    mode: 0700
+  become: true
+
+- name: Add CRON logrotate configuration file /opt/croncfgs
+  copy:
+    src: logrotate_cron
+    dest: /opt/croncfgs
+    mode: 0700
+  become: true
+
+- name: Add custom CRON job for log rotation
+  shell:
+    cmd: sudo /bin/bash -c 'echo "*/15 * * * * root /opt/croncfgs/logrotate_cron" >> /etc/crontab'
+  become: true
+
+- name: Add the XVP CS logrotate General Configuration File (logrotate_xvpcs.conf)
+  copy:
+    src: logrotate_xvpcs.conf
+    dest: /etc/logrotate_xvpcs.conf
+    mode: 0644
+  become: true
+
+- name: Implement new logrotate configuration
+  shell:
+    cmd: logrotate -v /etc/logrotate_xvpcs.conf
+  ignore_errors: true
+  become: true

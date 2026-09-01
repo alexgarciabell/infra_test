@@ -1,0 +1,59 @@
+# External service.properties template for ACL Auth
+
+# Note: These properties need to be internalized
+
+#Service Specific Properties
+aclApplicationName=ACL
+aclJwtTimeoutMinutes=30
+aclServiceAccessUrl=http://localhost:{{ service_listen_port }}/{{ service_name }}/
+cache.reloadCacheEntries=false
+cache.reloadCacheEntriesTimeUnit=DAYS
+cache.reloadCacheEntriesTimeout=1
+cache.retryCountUntilFullRefresh=10
+cache.tickDuration=60000
+cache.keysetChunkSizeForMassCacheLoad=500
+selfservice.admin.ownergroup=admin-group
+session.isauthenticated=session.isauthenticated
+session.lastvalidation=session.lastvalidation
+session.tokenkey=session.tokenkey
+session.validationinterval=2
+securityEngine=LDAP
+
+#AWS Related Properties
+aws.enableAutoTableCreation=true
+aws.readCapacityUnits=100
+aws.writeCapacityUnits=100
+aws.accessControlTableName=AppServicesAclMembership-selfservice-{{ env_type }}
+aws.changedDataTableName=AppServicesAclChangedKeys-selfservice-{{ env_type }}
+aws.membershipTableName=AppServicesAclGroupMembership-selfservice-{{ env_type }}
+aws.permissionGroupsTableName=AppServicesAclPermissionGroups-selfservice-{{ env_type }}
+aws.permissionTemplatesTableName=AppServicesAclPermissions-selfservice-{{ env_type }}
+
+#LDAP Related Properties
+ldap.connectionFactory=com.sun.jndi.ldap.LdapCtxFactory
+ldap.providerUrl=ldaps://ADAPPS.cable.comcast.com:3269
+ldap.searchBase=DC=comcast,DC=com
+ldap.securityAuthentication=simple
+
+#SAT properties
+satFailOpen=false
+satGracePeriod=604800000
+satPublicKeysUrl=stub
+satKeystoreFilepath=stub
+sat.jwkRegions=us
+
+#Extra Or Not-Needed Properties
+application.login.url=https://crowd.ta.teamccp.com/crowd/console
+crowd.server.url=https://crowd.ta.teamccp.com/crowd/services/SecurityServer
+aws.endpoint=
+
+{% if env_type == "ci" %}
+# CI Properties
+aws.ownerGroupMembershipTableName=AppServicesOwnerGroupMembership-selfservice-ci
+{% else %}
+# PROD and other (DEV ?) Properties
+aws.ownerGroupMembershipTableName=AppServicesAclOwnerGroupMembership-selfservice-{{ env_type }}
+{% endif %}
+
+#Vault Properties
+{{ lookup('hashi_vault', 'secret=/secret/appds/aclAuthService/{{ env_type }}:value auth_method=approle role_id={{ service_name }} secret_id=None url=https://current.vault.do.xcal.tv:8443') }}

@@ -1,0 +1,64 @@
+- name: Copy Eracent cleaner script
+  become: true
+  copy:
+    src: eracent-agent-cleaner-vICFAR.sh
+    dest: "{{ home_dir }}eracent-agent-cleaner-vICFAR.sh"
+    mode: 0777
+    owner: "root"
+    group: "root"
+
+- name: Run Eracent cleaner script
+  become: true
+  ansible.builtin.script: "{{ home_dir }}eracent-agent-cleaner-vICFAR.sh"
+
+- name: remove /var/Eracent
+  file:
+    path: /var/Eracent
+    state: absent
+  become: true
+
+- name: Removing duis.ini file
+  file:
+    path: /opt/Eracent/duis.ini
+    state: absent
+  become: true
+
+- name: Eracent Agent Jumpstart Procedures schedules.ini
+  file:
+    path: /opt/Eracent/EPA/conf/schedules.ini
+    state: absent
+  become: true
+
+- name: Eracent Agent Jumpstart Procedures IHState.ini
+  file:
+    path: /opt/Eracent/EPA/IHState.ini
+    state: absent
+  become: true
+
+- name: Eracent Agent Jumpstart Procedures EPA/scan
+  file:
+    path: /opt/Eracent/EPA/scan
+    state: absent
+  become: true
+
+#- name: Install the Eracent rpm from a remote repo
+#  become: true
+#  yum:
+#    name: https://yumrepo.sys.comcast.net/appds_repo/far/eracent/LINUX_x86_64_ClientsInstaller_3_EPA_EDA-11.11.5.0-0.x86_64.rpm
+#    state: present
+#    disable_gpg_check: true
+#
+#- name: Restart EracentEDAService
+#  service:
+#    name: "EracentEDAService.service"
+#    state: restarted
+#    enabled: yes
+#  become: true
+#
+#- name: Restart EracentEPAService
+#  service:
+#    name: "EracentEPAService.service"
+#    state: restarted
+#    enabled: yes
+#  become: true
+

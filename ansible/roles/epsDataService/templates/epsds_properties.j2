@@ -1,0 +1,81 @@
+# External service.properties template for epsDataService
+
+# Note: These properties need to be internalized
+
+# Service Configurations
+specific.applicationType=eps
+specific.maxConnections=200
+specific.maxConnectionsPerRoute=100
+
+# Custom Split Evaluator Configs
+split.enabled=false
+
+# Cache Settings
+dataaccess.cache.readTimeShift=5000
+
+# Tagging DS Configs
+{% if env_type == "ci" %}
+specific.enableTaggingService=true
+specific.taggingServiceUrl=https://ci.cmtagds.coast.xcal.tv:9481/cmTagDataService
+specific.taggingServiceAPIVersion=1
+{% elif env_type == "prod" %}
+# Tagging DS Configs
+specific.enableTaggingService=true
+specific.taggingServiceUrl=https://current.cmtagds.coast.xcal.tv:9481/cmTagDataService
+specific.taggingServiceAPIVersion=1
+{% else %}
+#Tagging DS Configs Not Set - Unrecognized Environment
+{% endif %}
+
+# SAT Base/Filter Configs
+satFailOpen=false
+satGracePeriod=604800000
+satKeystoreFilepath=stub
+satPublicKeysUrl=stub
+sat.jwkRegions=us
+
+# SAT Requester Configs
+specific.satRequesterUrl=https://sat-prod.codebig2.net/v2/oauth/token
+specific.satRequesterAcceptFeatures=sat
+specific.satRequesterMinutesToTokenUpdate=360
+specific.satRequesterIsSendSat=true
+specific.satCapsApplicationName=eps
+
+# SMART Configs
+smartEnabled=true
+dataaccess.smartEnabled=true
+smart.flume.autoFlush=true
+smart.flume.logEvents=false
+
+# Database Connection Configs
+dataaccess.cache.changedKeysCfName=AdsChangedKeys
+cassandra.port=9042
+cassandra.writeConsistency=LOCAL_QUORUM
+cassandra.readConsistency=LOCAL_QUORUM
+cassandra.consistencyLevel=LOCAL_QUORUM
+{% if env_type == "ci" %}
+cassandra.keyspaceName="EpsDataService"
+#cassandra.contactPoints=tvxcas-do-c10001-b.do.xcal.tv,tvxcas-do-c10004-b.do.xcal.tv
+#cassandra.localDataCenter=DO_testvnodes0
+cassandra.contactPoints=tvxdt-va-apps-ci-c10002.do.xcal.tv,tvxdt-va-apps-ci-c10004.do.xcal.tv
+cassandra.localDataCenter=AE
+{% elif env_type == "prod" %}
+cassandra.keyspaceName="EpsDataService"
+{% if datacenter == "ae" %}
+cassandra.contactPoints=96.114.83.210,96.114.81.6,96.114.82.75,96.114.82.232
+cassandra.localDataCenter=AE_EPS
+{% elif datacenter == "ao" %}
+cassandra.contactPoints=96.112.71.1,96.112.73.109,96.112.69.166,96.112.79.253
+cassandra.localDataCenter=OH_EPS
+{% elif datacenter == "aw" %}
+cassandra.contactPoints=96.114.88.145,96.114.92.186,96.114.88.248,96.114.92.38
+cassandra.localDataCenter=AW_EPS
+{% else %}
+#Cassandra Configs Not Set - Unrecognized Datacenter
+{% endif %}
+{% else %}
+#Cassandra Configs Not Set - Unrecognized Environment
+{% endif %}
+
+# Vault Properties
+{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/{{ service_name }}/{{ env_type }}:value token={{client_token}} url=https://or.vault.comcast.com') }}

@@ -1,0 +1,13 @@
+---
+# handlers file for boilerplate
+- name: Restart SSH
+  become: true
+  service:
+    name: sshd
+    state: restarted
+
+- name: Restart ntp
+  command: sudo systemctl restart ntpd
+
+- name: Enable ntp demon
+  command: sudo systemctl enable ntpd

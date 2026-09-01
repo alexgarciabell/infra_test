@@ -1,0 +1,147 @@
+#BlueOcean Properties
+
+{% if env_type == "ci" %}
+#CI Properties
+
+#Service Properties
+blueocean.protocol=https
+blueocean.freewheelbaseurl=5df08.v.fwmrm.net/ad/g/1
+blueocean.comcastProdBaseUrl=5df09.v.fwmrm.net/ad/g/1
+blueocean.schemaVersion=""
+blueocean.useStorage=true
+blueocean.storagePoolSize=50
+blueocean.asyncGetGridAdsStorage=true
+blueocean.notificationAttemptsToFW=3
+blueocean.callbackRetryUntil=3000
+blueocean.callbackRetryInterval=100
+blueocean.callbackThreadPoolSize=60
+blueocean.callbackTtl=7200
+blueocean.creativeTtl=90000
+blueocean.connectionTimeoutInMs=3000
+blueocean.socketTimeoutInMs=3000
+blueocean.requestTimeoutInMs=0
+blueocean.connectionPoolMaxTotal=500
+blueocean.connectionPoolMaxRoute=300
+blueocean.enableTrackingUrl=true
+blueocean.processXIFA=true
+blueocean.enableEvergreenConfig=false
+blueocean.useMacAddress=true
+
+#SQS Properties
+blueocean.DataQueueUrl={{ dataQueueUrl }}
+blueocean.sqsWritePoolSize=3
+blueocean.sqsReadPoolSize=3
+blueocean.SQSScheduledThreadPoolSize=1
+blueocean.queueProcessorDelay=15000
+blueocean.queueProcessorInterval=200
+blueocean.minNumberOfQMessages=2
+blueocean.queueThresholdSize=5000
+blueocean.useAwsSQS=true
+
+#SAT Properties
+satKeystoreFilepath=stub
+satPublicKeysUrl=stub
+sat.jwkRegions=us
+
+#DB Properties
+cassandra.contactpoints={{ cassandraSeeds }}
+cassandra.localdc={{ dbDatacenter }}
+cassandra.port=9042
+cassandra.keyspace=blueocean
+cassandra.cassandraReadConsistencyLevel=LOCAL_QUORUM
+cassandra.clientToNodeSSL=true
+cassandra.truststorePath={{ truststore_1_path }}
+cassandra.keystorePath={{ keystore_1_path }}
+
+#DB Migration Properties
+c5x.cassandra.contactpoints={{ altCassandraSeeds }}
+c5x.cassandra.localdc={{ altDBDatacenter }}
+c5x.cassandra.port=9042
+c5x.cassandra.keyspace=blueocean
+c5x.cassandra.cassandraReadConsistencyLevel=LOCAL_QUORUM
+c5x.cassandra.clientToNodeSSL=true
+c5x.cassandra.truststorePath={{ truststore_2_path }}
+c5x.cassandra.keystorePath={{ keystore_2_path }}
+blueocean.migrationPhase={{ migrationPhase }}
+
+#SMART Properties
+smart.clientName=coast
+smart.metricsConfigServiceBaseUrl=https://smartservice.telemetry.xcal.tv/smartConfigurationService
+smart.useSat=true
+smart.useSatRequester=true
+smart.satRequesterUrl=https://sat-prod.codebig2.net/v2/oauth/token
+{% elif env_type == "prod" %}
+#PROD Properties
+
+#Service Properties
+blueocean.protocol=https
+blueocean.freewheelbaseurl=5df08.v.fwmrm.net/ad/g/1
+blueocean.comcastProdBaseUrl=5df09.v.fwmrm.net/ad/g/1
+blueocean.schemaVersion=""
+blueocean.storagePoolSize=80
+blueocean.useStorage=true
+blueocean.asyncGetGridAdsStorage=true
+blueocean.notificationAttemptsToFW=3
+blueocean.callbackRetryUntil=3000
+blueocean.callbackRetryInterval=100
+blueocean.callbackThreadPoolSize=60
+blueocean.callbackTtl=7200
+blueocean.creativeTtl=90000
+blueocean.connectionTimeoutInMs=3000
+blueocean.socketTimeoutInMs=3000
+blueocean.requestTimeoutInMs=0
+blueocean.connectionPoolMaxTotal=100
+blueocean.connectionPoolMaxRoute=100
+blueocean.enableTrackingUrl=true
+blueocean.processXIFA=true
+blueocean.useMacAddress=true
+
+#SQS Properties
+blueocean.DataQueueUrl={{ dataQueueUrl }}
+blueocean.sqsWritePoolSize=5
+blueocean.sqsReadPoolSize=5
+blueocean.SQSScheduledThreadPoolSize=1
+blueocean.queueProcessorDelay=1500
+blueocean.queueProcessorInterval=150
+blueocean.minNumberOfQMessages=2
+blueocean.queueThresholdSize=5000
+blueocean.useAwsSQS=true
+
+#SAT Properties
+satKeystoreFilepath=stub
+satPublicKeysUrl=stub
+sat.jwkRegions=us
+
+#DB Properties
+cassandra.contactpoints={{ cassandraSeeds }}
+cassandra.localdc={{ dbDatacenter }}
+cassandra.port=9042
+cassandra.keyspace=blueocean
+cassandra.cassandraReadConsistencyLevel=LOCAL_QUORUM
+cassandra.clientToNodeSSL=true
+cassandra.truststorePath={{ truststore_1_path }}
+cassandra.keystorePath={{ keystore_1_path }}
+
+#DB Migration Properties
+c5x.cassandra.contactpoints={{ altCassandraSeeds }}
+c5x.cassandra.localdc={{ altDBDatacenter }}
+c5x.cassandra.port=9042
+c5x.cassandra.keyspace=blueocean
+c5x.cassandra.cassandraReadConsistencyLevel=LOCAL_QUORUM
+c5x.cassandra.clientToNodeSSL=true
+c5x.cassandra.truststorePath={{ truststore_2_path }}
+c5x.cassandra.keystorePath={{ keystore_2_path }}
+blueocean.migrationPhase={{ migrationPhase }}
+
+#SMART Properties
+smart.clientName=coast
+smart.metricsConfigServiceBaseUrl=https://smartservice.telemetry.xcal.tv/smartConfigurationService
+smart.useSat=true
+smart.useSatRequester=true
+smart.satRequesterUrl=https://sat-prod.codebig2.net/v2/oauth/token
+{% else %}
+#None
+{% endif %}
+
+#Vault Properties
+{{ lookup('hashi_vault', 'secret=/secret/appds/blueocean/{{ env_type }}:value auth_method=approle role_id=blueocean secret_id=None url=https://current.vault.do.xcal.tv:8443') }}

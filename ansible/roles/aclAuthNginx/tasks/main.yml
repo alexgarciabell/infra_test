@@ -1,0 +1,92 @@
+- name: Create Nginx Directories /etc/nginx/logs
+  file:
+    path: /etc/nginx/logs
+    owner: xdeploy
+    group: xdeploy
+    state: directory
+    mode: 0755
+  become: true
+  when: run_number == 1
+
+- name: Create Nginx Directories /etc/nginx/conf.d/
+  file:
+    path: /etc/nginx/conf.d/
+    owner: xdeploy
+    group: xdeploy
+    state: directory
+    mode: 0755
+  become: true
+  when: run_number == 1
+
+- name: Create Certificate Directory
+  file:
+    path: /opt/certs
+    owner: xdeploy
+    group: xdeploy
+    state: directory
+    mode: 0755
+  become: true
+  when: run_number == 1
+
+- name: Download Nginx Package
+  get_url:
+    url: https://yumrepo.sys.comcast.net/appds_repo/noarch/6/appds-tls-0.1.5.noarch.rpm
+    dest: /etc/nginx/appds-tls-0.1.5.noarch.rpm
+    mode: 0755
+  become: true
+  when: run_number == 1
+
+- name: install Nginx rpm from a local file
+  yum:
+    name: /etc/nginx/appds-tls-0.1.5.noarch.rpm
+    state: present
+  become: true
+  when: run_number == 1
+
+- name: Get Combo Certificate From Vault
+  copy:
+    content: "{{ lookup('hashi_vault', 'secret=secret/appds/aclAuthService/{{ env_type }}/certs/pem:value auth_method=approle role_id=aclAuthService secret_id=None url=https://current.vault.do.xcal.tv:8443') }}"
+    dest: /opt/certs/main.pem
+    owner: "root"
+    group: "root"
+    mode: 0644
+  become: true
+  when: run_number == 2
+
+- name: Create Ngnix Main Config File
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: "root"
+    group: "root"
+    mode: 0644
+  become: true
+  when: run_number == 1
+
+- name: Create Ngnix SSL Config File
+  template:
+    src: nginx_ssl.conf.j2
+    dest: /etc/nginx/conf.d/ssl.conf
+    owner: "root"
+    group: "root"
+    mode: 0644
+  become: true
+  when: run_number == 1
+
+- name: Create Ngnix Mime-Type File
+  template:
+    src: nginx_mime.j2
+    dest: /etc/nginx/mime.types
+    owner: "root"
+    group: "root"
+    mode: 0644
+  become: true
+  when: run_number == 1
+
+- name: Restart nginx
+  service:
+    name: "nginx"
+    state: restarted
+    enabled: yes
+  become: true
+  when: run_number == 2

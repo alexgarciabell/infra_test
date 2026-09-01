@@ -1,0 +1,8 @@
+---
+# defaults file for splunkforwarder
+
+splunkHome: /opt/splunkforwarder
+splunkDeploymentServer: splunk-deploy.g.xcal.tv:8089
+splunkClientName: coast_forwarders
+splunk_user: splunk
+splunk_hostname: default_hostname

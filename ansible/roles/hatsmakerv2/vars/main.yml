@@ -1,0 +1,7 @@
+---
+# vars file for hatsmaker
+ELK_USERNAME: "{{ lookup('hashi_vault', 'secret=/secret/appds/far/elk/{{ elk_domain }}/cluster_user:value auth_method=approle role_id=hatsmaker secret_id=None url=https://current.vault.do.xcal.tv:8443') }}"
+ELK_PASSWORD: "{{ lookup('hashi_vault', 'secret=/secret/appds/far/elk/{{ elk_domain }}/cluster_pass:value auth_method=approle role_id=hatsmaker secret_id=None url=https://current.vault.do.xcal.tv:8443') }}"
+ELK_ENDPOINT: "https://{{ elk_domain }}-elk.eaas.comcast.net/es/"
+ghe_access_token: "{{ lookup('hashi_vault', 'secret=/secret/appds/far/elk/xvpcapitalservices/ghec_access_token:value auth_method=approle role_id=hatsmaker secret_id=None url=https://current.vault.do.xcal.tv:8443') }}"
+SERVICE_ENV: "{{ env_type }}"

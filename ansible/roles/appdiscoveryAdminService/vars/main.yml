@@ -1,0 +1,5 @@
+---
+# vars file for appdiscoveryAdminService
+ELK_USERNAME: "{{ lookup('hashi_vault', 'secret=/secret/appds/far/elk/xvpcapitalservices/cluster_user:value auth_method=approle role_id=appdiscoveryAdminService secret_id=None url=https://current.vault.do.xcal.tv:8443') }}"
+ELK_PASSWORD: "{{ lookup('hashi_vault', 'secret=/secret/appds/far/elk/xvpcapitalservices/cluster_pass:value auth_method=approle role_id=appdiscoveryAdminService secret_id=None url=https://current.vault.do.xcal.tv:8443') }}"
+ghe_access_token: "{{ lookup('hashi_vault', 'secret=/secret/appds/far/elk/xvpcapitalservices/ghec_access_token:value auth_method=approle role_id=appdiscoveryAdminService secret_id=None url=https://current.vault.do.xcal.tv:8443') }}"

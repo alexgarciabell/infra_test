@@ -1,0 +1,89 @@
+# External service.properties template for configuratorAdminService
+
+# Note: These properties need to be internalized
+
+# Service Configurations
+specific.applicationType=cas
+specific.maxConnections=200
+specific.maxConnectionsPerRoute=100
+
+# Custom Split Evaluator Configs
+split.enabled=false
+
+# Cache Settings
+dataaccess.cache.readTimeShift=5000
+
+# Tagging DS Configs
+specific.enableTaggingService=false
+specific.taggingServiceUrl=na
+specific.taggingServiceAPIVersion=1
+
+# SAT Base/Filter Configs
+satFailOpen=false
+satGracePeriod=604800000
+satPublicKeysUrl=stub
+satKeystoreFilepath=stub
+sat.jwkRegions=us
+
+# SAT Requester Configs
+specific.satRequesterUrl=https://sat-prod.codebig2.net/v2/oauth/token
+specific.satRequesterAcceptFeatures=sat
+specific.satRequesterMinutesToTokenUpdate=360
+specific.satRequesterIsSendSat=true
+specific.satCapsApplicationName=config
+
+# SMART Configs
+smartEnabled=true
+dataaccess.smartEnabled=true
+smart.flume.autoFlush=true
+smart.flume.logEvents=false
+
+# User Management Settings
+xerxes.partnerId=comcast
+xerxes.authUrl=https://enterprise.xerxes.comcast.net
+{% if env_type == "ci" %}
+xerxes.clientId=xre_config_admin_ci
+{% elif env_type == "prod" %}
+xerxes.clientId=xre_config_admin_prod
+{% else %}
+#User Management Configs Not Set - Unrecognized Environment
+{% endif %}
+
+# Database Connection Configs
+dataaccess.cache.changedKeysCfName=AdsChangedKeys
+cassandra.port=9042
+cassandra.writeConsistency=LOCAL_QUORUM
+cassandra.readConsistency=LOCAL_QUORUM
+cassandra.consistencyLevel=LOCAL_QUORUM
+{% if env_type == "ci" %}
+cassandra.keyspaceName="XreConfigService"
+#cassandra.contactPoints=tvxcas-do-c10001-b.do.xcal.tv,tvxcas-do-c10004-b.do.xcal.tv
+#cassandra.localDataCenter=DO_testvnodes0
+cassandra.contactPoints=tvxdt-va-apps-ci-c10001.do.xcal.tv,tvxdt-va-apps-ci-c10003.do.xcal.tv
+cassandra.localDataCenter=AE
+{% elif env_type == "prod" %}
+cassandra.keyspaceName="ApplicationsDiscoveryDataService"
+{% if datacenter == "ae" %}
+#cassandra.contactPoints=tvxcas-ad-c00804-b.appds.r53.xcal.tv,tvxcas-ad-c00805-b.appds.r53.xcal.tv
+#cassandra.localDataCenter=AE2_XREC
+cassandra.contactPoints=96.114.82.209,96.114.82.37,96.114.83.16
+cassandra.localDataCenter=AE_XREConfig
+{% elif datacenter == "ao" %}
+#cassandra.contactPoints=tvxcas-ad-c20040-b.appds.r53.xcal.tv,tvxcas-ad-c20041-b.appds.r53.xcal.tv
+#cassandra.localDataCenter=AO2_XREC
+cassandra.contactPoints=96.112.70.7,96.112.77.55,96.112.69.55
+cassandra.localDataCenter=OH_XREConfig
+{% elif datacenter == "aw" %}
+#cassandra.contactPoints=tvxcas-ad-c30733-b.appds.r53.xcal.tv,tvxcas-ad-c30734-b.appds.r53.xcal.tv
+#cassandra.localDataCenter=AW2_XREC
+cassandra.contactPoints=96.114.88.51,96.114.90.21,96.114.92.204
+cassandra.localDataCenter=AW_XREConfig
+{% else %}
+#Cassandra Configs Not Set - Unrecognized Datacenter
+{% endif %}
+{% else %}
+#Cassandra Configs Not Set - Unrecognized Environment
+{% endif %}
+
+# Vault Properties
+{{ lookup('hashi_vault', 'secret=/secret/appds/{{ service_name }}/{{ env_type }}:value auth_method=approle role_id={{ service_name }} secret_id=None url=https://current.vault.do.xcal.tv:8443') }}

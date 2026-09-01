@@ -1,0 +1,11 @@
+---
+- hosts: all
+  roles:
+    - atlas-yumrepo
+    - boilerplate
+    - eracent-cleaner
+    - { role: vector, become: yes }
+    - { role: autobahn-config, become: yes, platform: aws }
+
+  vars:
+    home_dir: "/home/ec2-user/"

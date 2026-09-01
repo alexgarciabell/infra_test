@@ -1,0 +1,74 @@
+---
+# tasks file for boilerplate
+- name: Installing basic apps
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - unzip
+    - nc
+    - vi
+    - nano
+    - git
+    - tcpdump
+    - wget
+    - curl
+    - traceroute
+    - tcptraceroute
+    - sysstat
+    - ntpstat
+
+#- name: Upgrade kernel for CCP
+#  become: true
+#  # Updaing all packages is mandatory to ensure that no security vulnerabilities are present. Wait for it to complete before proceeding.
+#  block:
+#    - name: Update packages
+#      dnf:
+#        name: '*'
+#        state: latest
+#        exclude: falcon-sensor*
+#        update_cache: true
+#        lock_timeout: 600
+#      async: 600000
+#      poll: 2
+#      register: yum_sleeper
+
+- name: Updating known packages to latest
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: latest
+    disable_gpg_check: true
+  loop:
+    - falcon-sensor
+
+- name: Updating all packages to latest
+  become: true
+  yum:
+    name: "*"
+    state: latest
+    disable_gpg_check: true
+    #security: true
+
+- name: report the synchronisation state of the NTP daemon
+  shell: ntpstat
+
+- name: Configuring Users And Base Autobahn
+  import_tasks: users.yml
+
+- name: Applying kernel changes
+  import_tasks: kernel.yml
+
+- name: Apply logrotate configurations
+  import_tasks: logrotate_setup.yml
+
+#This will be used to store various scripts meant to be run on the host, including the image base host
+- name: Create script directory
+  file:
+    path: "/opt/xcal/apps/local_scripts"
+    owner: "root"
+    group: "root"
+    state: directory
+    mode: 0755
+  become: true

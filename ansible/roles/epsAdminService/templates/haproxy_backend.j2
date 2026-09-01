@@ -1,0 +1,57 @@
+# HAProxy config file for UI (Backend) SSL Termination
+
+global
+    daemon
+    pidfile /var/run/haproxy.pid
+    maxconn 1250
+    nbproc 1
+    cpu-map 1 0
+    group haproxy
+    user haproxy
+    tune.ssl.default-dh-param 1024
+    tune.ssl.cachesize 100000
+    tune.ssl.lifetime 600
+    tune.ssl.maxrecord 1460
+    ssl-default-bind-ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+    ssl-default-bind-options no-sslv3 no-tls-tickets
+    ssl-default-server-ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+    ssl-default-server-options no-sslv3 no-tls-tickets
+    log 127.0.0.1:1514 local1 warning
+    log-send-hostname
+
+defaults
+    mode http
+    log global
+    option httplog
+    option dontlognull
+    timeout connect 5s
+    timeout client 5s
+    timeout server 5s
+
+listen stats
+    bind 0.0.0.0:10543
+    stats uri /haproxy-stats
+
+frontend ssl_port
+    bind *:{{service_listen_port_ssl}} ssl crt /etc/haproxy/cert.pem
+    mode http
+    maxconn 1250
+    option forwardfor if-none
+    default_backend local_dest
+
+frontend health_status
+    mode http
+    bind *:9999 name healthchk
+    acl local_backend_down nbsrv(local_dest) lt 1
+    monitor-uri /allheartbeat
+    monitor fail if local_backend_down
+    maxconn 250
+
+# By default, httpchk will check the healthcheck every 2 seconds
+# Due to how we're currently handling redirection, the service's Jetty SSL port will be +1 from what it was before
+#  i.e. EPS Admin's SSL port is 9443 (PROD, CI); Jetty SSL port is 9444
+backend local_dest
+    redirect scheme https if !{ ssl_fc }
+    mode http
+    option httpchk GET /epsAdminService/info/heartBeat
+    server localhost 127.0.0.1:9444 ssl verify none maxconn 500 check

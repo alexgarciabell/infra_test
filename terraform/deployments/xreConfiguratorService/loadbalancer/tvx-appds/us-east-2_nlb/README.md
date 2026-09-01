@@ -1,0 +1,1 @@
+Currently, XRE Configurator DS is not in Ohio for PROD. Once it is ready, then create the necessary Terraform configuration files in this directory.

@@ -1,0 +1,6 @@
+---
+# Handlers file for OPENS
+
+- name: Installed opens-osquery
+  set_fact:
+    opens_installed: true

@@ -1,0 +1,54 @@
+---
+# tasks file for splunkforwarder
+
+- name: Install splunkforwarder
+  package:
+    name: splunkforwarder-9.0.0
+    state: present
+  become: true
+
+- name: Create user-seed.conf
+  template:
+    src: user_seed.conf.j2
+    dest: "{{ splunkHome }}/etc/system/local/user-seed.conf"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: u+rwx
+  become: true
+
+- name: create deploymentclient.conf
+  template:
+    src: deploymentclient.conf.j2
+    dest: "{{ splunkHome }}/etc/system/local/deploymentclient.conf"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: u+rwx
+  become: true
+
+- name: create inputs.conf
+  template:
+    src: inputs.conf.j2
+    dest: "{{ splunkHome }}/etc/system/local/inputs.conf"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: u+rwx
+  become: true
+
+# Init splunk if package was installed and needs to be initialized
+- name: Start Splunk for the first time
+  shell: "{{ splunkHome }}/bin/splunk start --accept-license --answer-yes"
+  become: true
+
+- name: Enable Splunk on Boot
+  shell: "{{ splunkHome }}/bin/splunk enable boot-start"
+  become: true
+
+- name: remove server.conf before Splunk restart
+  file:
+    path: "{{ splunkHome }}/etc/system/local/server.conf"
+    state: absent
+  become: true
+
+- name: Restart Splunk if needed
+  become: true
+  shell: "{{ splunkHome }}/bin/splunk restart"

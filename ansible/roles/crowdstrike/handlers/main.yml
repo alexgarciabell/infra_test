@@ -1,0 +1,6 @@
+---
+# Handlers file for Crowdstrike
+
+- name: Installed Crowdstrike
+  set_fact:
+    crowdstrike_installed: true

@@ -1,0 +1,36 @@
+# cmd: util_logger.sh JETTY_PID
+#
+
+JETTY_HOME=/opt/xcal/apps/{{ service_name }}
+
+if [ "x$1" == "x" ]
+then
+        if [ -r $JETTY_HOME/jetty.pid ]
+        then
+                JETTY_PID=`cat $JETTY_HOME/jetty.pid`
+        else
+                JETTY_PID=`pgrep -f $JETTY_HOME/logs`
+        fi
+else
+        JETTY_PID=$1
+fi
+
+if [ "x$JETTY_PID" == "x" ]
+then
+        echo "usage $0 JETTY_PID"
+        exit 0;
+fi
+
+PS_LOG=$JETTY_HOME/logs/ps_util.log
+JSTAT_LOG=$JETTY_HOME/logs/jstat_util.log
+
+while kill -0 "$JETTY_PID" 2>/dev/null; do
+        TSTAMP=`date`
+        MEM=`cat /proc/meminfo |grep -e '^Mem' -e '^Swap' | sed -e 's/: */=/' |sed -e :a -e '$!N; s/\n/ /; ta'`
+        ps -p "$JETTY_PID" -o %cpu,%mem | awk -v mem="$MEM" -v date="$TSTAMP" 'NR > 1 { print date" jetty_cpu="$1" jetty_mem="$2" "mem }' >> $PS_LOG
+        sar 1 1 | tail -1 |awk '{print "sar_user="$3" sar_nice="$4" sar_system="$5" sar_iowait="$6" sar_steal="$7" sar_idle="$8'} >> $PS_LOG
+        jstat -gcutil -t "$JETTY_PID" | awk -v date="$TSTAMP" 'NR > 1 { print date " Timestamp=" $1 " Survivor0=" $2 " Survivor1=" $3 " Eden=" $4 " Old=" $5 " Perm=" $6 " YGC=" $7 " YGCT=" $8 " FGC=" $9 " FGCT=" $10 " GCT=" $11 }' >> $JSTAT_LOG
+        sleep 60
+done
+
+exit 0;

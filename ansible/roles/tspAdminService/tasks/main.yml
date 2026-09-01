@@ -1,0 +1,258 @@
+---
+- name: Generating vault token to fetch secrets
+  uri:
+      url: https://or.vault.comcast.com/v1/auth/approle/login
+      body: |
+        { "role_id": "{{ role_id }}", 
+          "secret_id": "{{ secret_id }}"
+        }
+      method: POST
+      body_format: json
+      headers: 
+        Content-Type: application/json
+  register: result
+  no_log: true
+
+- set_fact:
+    client_token: "{{ result.json['auth'].client_token }}"
+  no_log: true
+
+# tasks file for tspAdminService
+- name: Copy jetty folder to installation directory
+  command: "mv {{ jetty_install_dir }}jetty-distribution-{{jetty_version}} {{ service_install_dir }}"
+  ignore_errors: yes
+  become: true
+
+- name: Create installation directory
+  file:
+    path: "{{ service_install_dir }}"
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+    state: directory
+    mode: 0755
+  become: true
+
+- name: create install log dir
+  file:
+    path: "{{ service_install_dir }}/log"
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+    state: directory
+    mode: 0755
+  become: true
+
+# Install HAProxy for backend TLS
+- name: Install HAProxy
+  package:
+    name: "haproxy"
+    state: present
+  become: true
+
+# Config HAProxy
+- name: Copy HAProxy config file
+  template:
+    src: haproxy_backend.j2
+    dest: "/etc/haproxy/haproxy.cfg"
+    mode: 0644
+    owner: "root"
+    group: "root"
+  become: true
+  notify:
+  - Restart haproxy
+
+# Retrieving Backend SSL certs - Environmental
+- name: Pull certs from Hashicorp Vault for backend HAProxy - Env Based
+  copy:
+    content: "{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/{{ service_name }}/{{ env_type }}/certs/pem:value token={{client_token}} url=https://or.vault.comcast.com')}}"
+    dest: "/etc/haproxy/cert.pem"
+    owner: "root"
+    group: "root"
+    mode: 0644
+  become: true
+  notify:
+  - Restart haproxy
+
+# This will create the Jetty logging file for local Jetty logs
+- name: Create jetty-logging.xml file
+  template:
+    src: jetty_logging.j2
+    dest: "{{ service_install_dir }}/etc/jetty-logging.xml"
+    owner: "{{owner_user}}"
+    group: "{{owner_user}}"
+    mode: 755
+  become: true
+
+# This will pull down the Base 64 encoded keystore data from Vault
+- name: Pull Jetty keystore raw data
+  copy:
+    content: "{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/{{ service_name }}/{{ env_type }}/jettykeystore:value token={{client_token}} url=https://or.vault.comcast.com') }}"
+    dest: "{{ service_install_dir }}/etc/keystore.base64"
+    owner: "root"
+    group: "root"
+    mode: 0644
+  become: true
+
+# This will decode the Base 64 data in order to create the keystore file Jetty needs for SSL processing
+- name: Decode Jetty keystore raw data
+  shell: "cat {{ service_install_dir }}/etc/keystore.base64 | base64 -d > {{ service_install_dir }}/etc/keystore"
+  register: result
+  failed_when: result.rc >= 2
+  become: true
+
+- name: Create satkeystore dir
+  file:
+    path: "{{ service_install_dir }}/resources/satKeystore"
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+    state: directory
+    mode: 0755
+  become: true
+
+- name: Copy and extract SAT pub-keys zip file
+  unarchive:
+    src: local_sat_pubs.zip
+    dest: "{{ service_install_dir }}/resources/satKeystore"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+  become: true
+
+# The wrapper.sh script is used to start up the service and specifies the command line options
+- name: Create wrapper.sh
+  template:
+    src: wrapper.sh.j2
+    dest: "{{ service_install_dir }}/bin/wrapper.sh"
+    owner: "{{owner_user}}"
+    group: "{{owner_user}}"
+    mode: u+rwx
+  become: true
+
+- name: Create util_logger.sh
+  template:
+    src: util_logger.sh.j2
+    dest: "{{ service_install_dir }}/bin/util_logger.sh"
+    owner: "{{owner_user}}"
+    group: "{{owner_user}}"
+    mode: u+rwx
+  become: true
+
+# The logback.xml file contains the logging parameters for the service (note that it does not affect logs outside the service)
+- name: Create logback.xml
+  template:
+    src: logback.xml.j2
+    dest: "{{ service_install_dir }}/resources/logback.xml"
+    owner: "{{owner_user}}"
+    group: "{{owner_user}}"
+    mode: u+rwx
+  become: true
+
+- name: Create init.d script
+  template:
+    src: "service.conf.j2"
+    dest: "/etc/init.d/{{ service_name }}"
+    mode: "u+rwx"
+  become: true
+
+- name: Create start.ini file
+  become: true
+  template:
+    src: "jetty.ini.j2"
+    dest: "{{ service_install_dir }}/start.ini"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+
+- name: Create service property file
+  become: true
+  template:
+    src: tspAdminService_properties.j2
+    dest: "{{ service_install_dir }}/service.properties"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+  notify: Restart service
+
+
+- name: Insert Gzip hanlder in jetty.xml
+  blockinfile:
+    block: "{{ lookup('template', 'jetty.xml.j2')}}"
+    dest: "{{ service_install_dir }}/etc/jetty.xml"
+    insertbefore: "</Configure>"
+    backup: yes
+    marker: "# {mark} #####GZipHandler#####"
+  become: true
+  ignore_errors: yes
+
+- name: Download released WAR artifact from Maven
+  maven_artifact:
+    group_id: "{{ artifact_group_id }}"
+    artifact_id: "{{ artifact_id }}"
+    extension: war
+    version: "{{ artifact_version }}"
+    repository_url: "{{ artifact_repo }}"
+    dest:  "{{ service_install_dir }}/webapps/{{ service_name }}.war"
+    username: "svc_ics_far_squad"
+    password: "{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/far/artifactory:value token={{client_token}} url=https://or.vault.comcast.com') }}"
+  become: true
+  notify:
+    - Restart service
+
+- name: Set permissions on service directory
+  file:
+    path: "{{ service_install_dir }}"
+    state: directory
+    mode: "u+rwx,g-rwx,o-rwx"
+    owner: "{{owner_user}}"
+    group: "{{owner_user}}"
+    recurse: true
+  become: true
+  notify:
+  - Restart service
+  - Invalidate Vault client token
+
+- name: Create directory for Eracent SWID file
+  file:
+    path: "/usr/share/comcast"
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+    state: directory
+    mode: 0755
+  become: true
+
+- name: Copy Eracent SWID file
+  copy:
+    src: tsp_Admin_Service.swidtag.j2
+    dest: "/usr/share/comcast/tsp_Admin_Service.swidtag"
+    mode: 0755
+    owner: "{{ owner_user }}"
+    group: "{{ owner_user }}"
+  become: true
+  when: run_number == "b"
+
+- name: Configuring Vector
+  include_tasks: vector.yml
+  #when: run_number == "b"
+
+# Due to the location of the account space and the account metadata, we are assuming a Blue Zone config
+- name: Start up Crowdstrike
+  shell: "systemctl start falcon-sensor"
+  become: true
+
+- name: Enable Crowdstrike
+  shell: "systemctl enable falcon-sensor"
+  become: true
+
+# Be sure to check on whether the hosts have Crowdstrike running in the #crowdstrike Slack channel after a few minutes.
+
+- name: Removing open osquery DB file
+  shell: rm -rf /var/osquery/osquery.db
+  become: true
+
+- name: Restart OPENS
+  shell: "systemctl restart opens-osqueryd.service"
+  become: true
+
+# Be sure to check on whether the hosts have OPENS running in the #opens-support Slack channel after a few minutes.
+
+- name: Trigger Handlers
+  meta: flush_handlers

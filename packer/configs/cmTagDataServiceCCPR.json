@@ -1,0 +1,74 @@
+{
+  "variables": {
+    "ccptoken": "{{env `CCPTOKEN`}}",
+    "ccpacct": "{{env `CCPACCT`}}",
+    "tenant": "{{env `TENANT`}}",
+    "ccpregion": "{{env `REGION`}}",
+    "rail": "{{env `RAIL`}}",
+    "ccpaz": "az1",
+    "artifact_version": "{{env `ARTIFACT_VERSION`}}",
+    "in_cmi": "{{env `IN_CMI`}}",
+    "cmi-name": "icfar-tagds-{{isotime \"02-Jan-2006-03-04-05\"}}",
+    "java_package": "java-1.8.0-openjdk.x86_64"
+  },
+  "builders": [
+    {
+      "xcloud_account": "{{user `ccpacct`}}",
+      "in_tenant": "{{user `tenant`}}",
+      "region": "{{user `ccpregion`}}",
+      "in_rail": "{{user `rail`}}",
+      "az": "{{user `ccpaz`}}",
+      "token": "{{user `ccptoken`}}",
+      "name": "xcloud-{{user `ccpregion`}}",
+      "template_name": "{{user `cmi-name`}}",
+      "deployment_name": "{{user `cmi-name`}}",
+      "reason": "Deploy VM {{user `cmi-name`}}",
+      "description": "packer image {{user `cmi-name`}}",
+      "vm_name": "{{user `cmi-name`}}",
+      "type": "xcloud",
+      "catalog": "Linux Custom",
+      "in_CMI": "{{user `in_cmi`}}",
+      "api": "https://api.ccp.comcast.com/api",
+      "id_timeout": 40,
+      "shutdown_timeout": 120,
+      "template_timeout": 90,
+      "ip_timeout": 10,
+      "delete_vm": true,
+      "in_count": 1,
+      "in_flavor": "CC.1cpu-1GB",
+      "in_boot_capacity": 50,
+      "in_ipv": "IPv4_IPv6",
+      "in_tags": "Name:{{user `cmi-name`}},date-created:{{isotime \"02-Jan-2006\"}}",
+      "in_config": "CCPRcloudconfig.yaml",
+      "communicator": "ssh",
+      "ssh_bastion_host": "jump-tsf.autobahn.comcast.com",
+      "ssh_bastion_port": "22",
+      "ssh_port": "22",
+      "ssh_timeout": "3m",
+      "ssh_username": "rocky",
+      "ssh_bastion_username": "svcAutobahn",
+      "ssh_bastion_agent_auth": true,
+      "ssh_agent_auth": true
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "remote_folder": "/home/rocky",
+      "execute_command": "chmod 755 {{ .Path }}; {{ .Vars }} {{ .Path }}",
+      "inline": [
+        "sudo cloud-init status --wait; sleep 30; sudo cloud-init clean -l",
+        "sudo systemctl enable cloud-init-re-exec.service",
+        "sudo chmod -R 755 /usr/local/lib/python3.6",
+        "sudo /etc/cloud/clean.sh"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_dir": "../../ansible/plays/",
+      "playbook_file": "../../ansible/plays/cmTagDataService.yml",
+      "role_paths": ["../../ansible/roles/java", "../../ansible/roles/jetty", "../../ansible/roles/cmTagDataService", "../../ansible/roles/eracent-installer"],
+      "extra_arguments": ["--extra-vars 'artifact_version={{user `artifact_version`}} java_package={{user `java_package`}}'"]
+    }
+  ]
+}

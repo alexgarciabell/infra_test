@@ -1,0 +1,64 @@
+---
+- name: "Installing HAProxy"
+  become: true
+  yum:
+    name: haproxy
+    state: present
+
+- name: "Placing HAProxy Configuration"
+  become: true
+  template:
+    src: ../templates/haproxy.conf.j2
+    dest: /etc/haproxy/haproxy.cfg
+
+- name: Making HAProxy start on boot
+  become: true
+  service:
+    name: haproxy
+    enabled: yes
+
+- name: Copying hatop tarball
+  become: true
+  copy:
+    src: ../files/hatop_0.7.7.tar.gz
+    dest: /home/xdeploy/ansible-relics/haproxy/
+
+- name: Unarchiving HATop
+  become: true
+  unarchive:
+    src: /home/xdeploy/ansible-relics/haproxy/hatop_0.7.7.tar.gz
+    remote_src: true
+    dest: /home/xdeploy/ansible-relics/haproxy/
+
+- name: Copy HATop binary to /usr/local/bin
+  become: true
+  copy:
+    src: /home/xdeploy/ansible-relics/haproxy/hatop-0.7.7/bin/hatop
+    remote_src: true
+    dest: /usr/local/bin/
+    mode: a+x
+
+- name: Create haproxy error directory
+  become: true
+  file:
+    path: "/etc/haproxy/errors"
+    owner: "root"
+    group: "root"
+    state: directory
+    mode: 0755
+  when: enable_405_errors
+
+- name: Copying hatop tarball
+  become: true
+  copy:
+    src: 405.http
+    dest: "/etc/haproxy/errors/"
+  when: enable_405_errors
+
+- name: Copying haproxy rsyslog config
+  become: true
+  copy:
+    src: 49-haproxy.conf
+    dest: "/etc/rsyslog.d/49-haproxy.conf"
+  notify:
+  - Restart rsyslog

@@ -1,0 +1,32 @@
+- name: make sure config dir is created
+  file:
+    path: "{{ hubble_client_vector_dir }}"
+    state: directory
+    mode: 0755
+
+- name: grab old files from config dir
+  find:
+    paths: "{{ hubble_client_vector_dir }}"
+    patterns: "*.{{ hubble_client_vector_config_format }}"
+  register: old_configs
+
+- name: remove any old vector config files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ old_configs.files }}"
+
+- name: find paths in local client config
+  local_action: find paths="{{ hubble_client_config }}" patterns="*.{{ hubble_client_vector_config_format }}"
+  become: false
+  register: client_configs
+
+- name: Template vector config files for hubble clients
+  template: src="{{ item.path }}" dest="{{ hubble_client_vector_dir }}/{{ item.path | basename }}" mode=0644
+  loop: "{{ client_configs.files }}"
+
+#- name: Ensure vector is restarted to pick up any changes
+#  systemd:
+#    name: vector
+#    state: restarted
+#    enabled: yes

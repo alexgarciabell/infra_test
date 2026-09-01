@@ -1,0 +1,9 @@
+---
+# handlers file for hatsmaker
+
+- name: Restart Hatsmaker
+  become: true
+  service:
+    name: hatsmaker
+    state: restarted
+    enabled: yes

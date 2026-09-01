@@ -1,0 +1,17 @@
+---
+#Crowdstrike Base Install
+- name: Install Crowdstrike
+  yum:
+    name: falcon-sensor
+    state: latest
+  become: true
+
+- name: Set up Crowdstrike license operation
+  shell: "/opt/CrowdStrike/falconctl -s -f --cid=1AB23F2E88784A788D3F7142081CDEFA-8A"
+  become: true
+  notify: Installed Crowdstrike
+
+- name: Check installed Crowdstrike version
+  shell: "/opt/CrowdStrike/falconctl -g --version"
+  become: true
+  when: crowdstrike_installed is defined

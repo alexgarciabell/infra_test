@@ -1,0 +1,11 @@
+---
+- hosts: all
+  roles:
+    - atlas-yumrepoCCP
+    - boilerplateCCPR
+    - eracent-cleaner
+    - { role: vector, become: yes }
+    - { role: autobahn-config, become: yes, platform: ccp }
+
+  vars:
+    home_dir: "/home/rocky/"

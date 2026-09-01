@@ -1,0 +1,12 @@
+# External service.properties template for TSP Admin
+
+# Note: These properties need to be internalized
+
+# SAT Properties
+satFailOpen=false
+satGracePeriod=604800000
+satPublicKeysUrl=stub
+satKeystoreFilepath=stub
+sat.jwkRegions=us
+
+{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/{{ service_name }}/{{ env_type }}:value token={{client_token}} url=https://or.vault.comcast.com') }}

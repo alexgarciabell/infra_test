@@ -1,0 +1,29 @@
+---
+# defaults file for hatsmaker
+run_number: a
+owner_user: xdeploy
+install_dir: /opt/xcal/apps/hatsmaker
+nexus_repo_master: https://artifactory.comcast.com/artifactory/x1IcsCoreServices-libs-releases/
+artifact_version: 1.38.8
+group_name: com.comcast.apps.hats
+artifact_name: hatsmaker
+classifer: app
+service_name: fillmein
+cert_name: fillmein2
+service_ssl_port: 8080
+service_ssl_ipv6_enabled: "false"
+service_ssl_backend_enabled: "true"
+hats_id: APPDS_DEFAULT
+env_type: ci
+ads_endpoint_codebig: https://appdiscoveryds-admin-ci.codebig2.net/
+ads_endpoint_local: https://ci.applicationdiscoveryadminservice.ccp.xcal.tv:9443/appdiscoveryAdminService/
+sat_minutes_left_for_token: 2880
+haproxy_nbproc: 4
+haproxy_template: haproxy_ftl.j2
+mtls_mode: "none"
+env_certs: "false"
+vector_systemd_memory_max: 1024000000
+vector_systemd_cpu_quota: 20%
+elk_domain: fillmein3
+VECTOR_LOG_INDEX: fillmein4
+HAPROXY_LOG_INDEX: fillmein5

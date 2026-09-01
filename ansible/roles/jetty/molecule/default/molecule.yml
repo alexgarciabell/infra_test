@@ -1,0 +1,25 @@
+---
+
+dependency:
+  name: galaxy
+driver:
+  name: ec2
+lint:
+  name: yamllint
+  enabled: false
+platforms:
+  - name: instance
+    image: ami-08f17f784b68ddc49
+    instance_type: c5.large
+    vpc_subnet_id: subnet-ec739b9b
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      timeout: 30
+  lint:
+    name: ansible-lint
+verifier:
+  name: testinfra
+  lint:
+    name: flake8

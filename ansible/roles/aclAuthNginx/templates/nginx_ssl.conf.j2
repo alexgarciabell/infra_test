@@ -1,0 +1,23 @@
+server {
+    listen    443;
+    ssl    on;
+    #The hostname may need to be the actual hostname, not localhost
+    server_name    localhost;
+    #Nginx is apparently able to figure out what is the private key and what is the certificate from the same file
+    ssl_certificate    /opt/certs/main.pem;
+    ssl_certificate_key    /opt/certs/main.pem;
+    ssl_session_cache    shared:SSL:30m;
+    ssl_session_timeout    30m;
+    ssl_protocols    TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers    HIGH:!aNULL:!MD5;
+    ##Send request to the configured Jetty SSL port##
+    location / {
+        proxy_pass    https://127.0.0.1:10430;
+        proxy_next_upstream    error timeout invalid_header http_500 http_502 http_503 http_504;
+        proxy_redirect    off;
+        proxy_buffering    off;
+        proxy_set_header    Host $host;
+        proxy_set_header    X-Real-IP $remote_addr;
+        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}

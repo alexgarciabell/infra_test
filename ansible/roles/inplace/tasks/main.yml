@@ -1,0 +1,73 @@
+---
+- name: backup old war file
+  copy:
+    src: "{{ service_install_dir }}/webapps/{{ servicename }}.war"
+    dest: "{{ service_install_dir }}/webapps/{{ servicename }}.war.backup"
+    remote_src: yes
+    owner: "{{owner_user}}"
+    group: "{{owner_user}}"
+  become: true
+  when: rollback_flag | lower == 'false'
+  
+- name: remove existing war file
+  file:
+    path: "{{ service_install_dir }}/webapps/{{ servicename }}.war"
+    state: absent
+  become: true
+  when: rollback_flag | lower == 'false'
+
+  
+- name: Determine the repository URL for snapshot
+  set_fact:
+    artifact_repo: "{{ artifact_repo_snapshots }}"
+  when: rollback_flag | lower == 'false'
+
+
+- name: Fail if no valid version found
+  fail:
+    msg: "No valid version found in metadata. Deployment stopped."
+  when: (inplace_version | length == 0) and (not rollback_flag)
+
+
+  
+- name: Download WAR file
+  get_url:
+    url: "{{ artifact_repo }}/{{ artifact_groupid | replace('.', '/') }}/{{ artifactid }}/{{ inplace_version }}/{{ artifactid }}-{{ inplace_version }}.war"
+    dest: "{{ service_install_dir }}/webapps/{{ servicename }}.war"
+    username: "{{ lookup('env','artifact_username') }}"
+    password: "{{ lookup('env','artifact_password') }}"
+    force: yes
+  become: true
+  when: rollback_flag | lower == 'false'
+  notify:
+    - Restarting service
+
+- name: remove current war file
+  file:
+    path: "{{ service_install_dir }}/webapps/{{ servicename }}.war"
+    state: absent
+  become: true
+  when: rollback_flag | lower == 'true'
+  tags: rollback
+
+- name: Remove extracted directory
+  file:
+    path: "{{ service_install_dir }}/webapps/{{ servicename }}"
+    state: absent
+  become: true
+  when: rollback_flag | lower == 'true'
+  tags: rollback
+
+- name: Rollback by renaming backup file to .war
+  command: mv "{{ service_install_dir }}/webapps/{{ servicename }}.war.backup" "{{ service_install_dir }}/webapps/{{ servicename }}.war"
+  become: true
+  when: rollback_flag | lower == 'true'
+  tags: rollback
+
+- name: Update WAR timestamp to trigger redeploy
+  command: touch "{{ service_install_dir }}/webapps/{{ servicename }}.war"
+  become: true
+  when: rollback_flag | lower == 'true'
+  tags: rollback
+  notify:
+    - Restarting service

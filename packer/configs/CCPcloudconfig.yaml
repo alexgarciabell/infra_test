@@ -1,0 +1,4 @@
+#cloud-config
+runcmd:
+  # Setting up Autobahn
+  - echo coast.coast-services.coast > /etc/ssh/authorized_principals/centos

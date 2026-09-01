@@ -1,0 +1,5 @@
+# Note: The settings in this template should be examined in the future as this might be the cause
+# for why we sometimes have issues with SSH, such as running CMI builds from the Jump hosts
+
+Host *
+IdentityFile ~/.ssh/id_rsa_coast_{{ env_type }}

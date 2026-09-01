@@ -1,0 +1,5 @@
+---
+# vars file for epsDataService
+ELK_USERNAME: "{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/far/elk/xvpcapitalservices/cluster_user:value token={{client_token}} url=https://or.vault.comcast.com') }}"
+ELK_PASSWORD: "{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/far/elk/xvpcapitalservices/cluster_pass:value token={{client_token}} url=https://or.vault.comcast.com') }}"
+ghe_access_token: "{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/far/elk/xvpcapitalservices/ghec_access_token:value token={{client_token}} url=https://or.vault.comcast.com') }}"

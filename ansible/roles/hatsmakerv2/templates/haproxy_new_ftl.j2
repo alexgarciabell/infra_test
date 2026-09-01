@@ -1,0 +1,138 @@
+# Common HAProxy template in master branch
+
+# Modified Hatsmaker/HAProxy template for new Standard setup configs
+# This version is mainly to be better compliant with clients using Java 1.7 and 1.8, which are using updated SSL protocols.
+# Additionally, this is staically setting the nbproc and CPU tunings with respect to 8 CPUs. This part will be more dynamic at a later time.
+
+global
+	daemon
+	pidfile /var/run/haproxy.pid
+	maxconn 120000
+	nbproc {{ haproxy_nbproc }}
+    {% for cpu in range(haproxy_nbproc) %}
+    cpu-map {{ cpu + 1 }} {{ cpu }}
+    {% endfor %}
+	group haproxy
+	user haproxy
+	tune.ssl.default-dh-param 1024
+	tune.ssl.cachesize 10000000
+	tune.ssl.lifetime 600
+	tune.ssl.maxrecord 1460
+	ssl-default-bind-ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+	ssl-default-bind-options no-sslv3 no-tls-tickets
+	ssl-default-server-ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+	ssl-default-server-options no-sslv3 no-tls-tickets
+	log 127.0.0.1:1514 local1 info
+	log-send-hostname
+    {% for cpu in range(haproxy_nbproc) %}
+    stats socket /var/run/haproxy.sock{{ cpu + 1 }} mode 666 level user process {{ cpu + 1 }} 
+    {% endfor %}
+
+defaults
+	mode http
+	option log-health-checks
+	option log-separate-errors
+	option http-keep-alive
+	option clitcpka
+	timeout connect 5000
+	timeout client 5s
+	timeout server 5s
+	balance roundrobin
+	default-server inter 5s fall 3 rise 1
+	monitor-uri /haproxy_test
+	monitor-net 192.168.3.2/31
+	monitor-net 96.114.160.2/31
+	log-format '{ "clientIP"="%ci" "clientPort"="%cp" "dateTime"="%t" "frontendNameTransport"="%ft" "backend"="%b" "serverName"="%s" "Ta"="%Ta" "Tr"="%Tr" "Tq"="%Tq" "TR"="%TR" "Ti"="%Ti" "Th"="%Th" "Tw"="%Tw" "Tc"="%Tc" "Tt"="%Tt" "bytesRead"="%B" "terminationState"="%ts" "actconn"="%ac" "FrontendCurrentConn"="%fc" "backendCurrentConn"="%bc" "serverConcurrentConn"="%sc" "retries"="%rc" "srvQueue"="%sq" "backendQueue"="%bq" "http-status"="%ST" "backendSourceIP"="%bi" "backendSourcePort"="%bp" "http_request"=%{+Q}r}'
+
+listen stats
+  bind :10543
+	mode http
+	log global
+	stats uri /haproxy-stats
+
+# one frontend per service
+<#list tsp.configs as service>
+frontend ${service.service}
+    bind *:${service.sslPort} ssl crt ${service.sslCert}
+    log global
+    maxconn ${service.maxconn}
+    option forwardfor if-none
+    http-request set-header HA-Forwarded-For %ci
+    capture request header X-Forwarded-For len 64
+    capture request header X-ServiceAccountId len 64
+    capture request header X-ServiceDeviceId len 64
+    capture request header User-Agent len 64
+    <#list tsp.rules as rule>
+    <#if rule.service == service.service>
+      <#switch rule.operation>
+        <#case "in">
+    acl ${service.service}-${rule_index} hdr(${rule.header}) -f ${rule.file}
+        <#break>
+        <#case "bitmask">
+    acl ${service.service}-${rule_index} hdr(${rule.header}),bitmask(${rule.value}) eq 1
+        <#break>
+        <#case "percent">
+    acl ${service.service}-${rule_index} hdr(${rule.header}),crc32(),mod(100) lt ${rule.value}
+        <#break>
+        <#case "like">
+    acl ${service.service}-${rule_index} hdr_reg(${rule.header}) ${rule.value}
+        <#break>
+      </#switch>
+    </#if>
+    </#list>
+    <#if service.sslBackend?has_content && service.sslBackend == "true" >
+    acl https ssl_fc
+    </#if>
+# Backend rules are evaluated in the order that they appear.  The first match is the one that is used.  The ssl backends
+# come before the non-ssl backends.  The default ssl backend comes before the default non-ssl backend.
+  <#assign default="">
+  <#list tsp.rules as rule>
+    <#if rule.service == service.service>
+      <#switch rule.operation>
+        <#case "default">
+        <#assign default=rule.version>
+        <#break>
+        <#case "in">
+        <#case "bitmask">
+        <#case "percent">
+        <#case "like">
+    use_backend ${service.service}.${rule.version} if ${service.service}-${rule_index}
+      </#switch>
+    </#if>
+  </#list>
+  <#if default != "">
+    default_backend ${service.service}.${default}
+  </#if>
+</#list>
+
+# one backend per service and version (SSL only)
+<#list tsp.configs as service>
+  <#if service.backendMaxconn?has_content >
+    <#assign be_maxconn="${service.backendMaxconn}">
+  <#elseif service.service == "appdiscoveryService">
+    <#assign be_maxconn="2">
+  <#else>
+    <#assign be_maxconn="200">
+  </#if>
+  <#if service.sslBackend?has_content && service.sslBackend == "true" >
+    <#assign be_ssl=true >
+  <#else>
+    <#assign be_ssl=false >
+  </#if >
+  <#list service.versions as v>
+
+backend ${service.service}.${v.version}
+    <#if service.healthCheck?has_content >
+    option httpchk GET ${service.healthCheck}
+    <#elseif service.heartBeat?has_content >
+    option httpchk GET ${service.heartBeat}
+    </#if>
+    <#list v.hosts as host>
+    <#if service.sslPort?has_content && (be_ssl || service.sslPort == host.port ) >
+    server ${host.host} ${host.ip}:${service.sslPort} ssl verify none maxconn ${be_maxconn} check
+    <#else>
+    server ${host.host} ${host.ip}:${host.port} maxconn ${be_maxconn} check
+    </#if>
+    </#list>
+  </#list>
+</#list>

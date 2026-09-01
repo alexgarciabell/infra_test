@@ -1,0 +1,28 @@
+---
+# tasks file for jetty
+
+- name: "Download jetty version <{{jetty_version}}>"
+  get_url: 
+    url: "{{jetty_url}}"
+    dest: "/tmp/jetty-{{jetty_version}}.tar.gz"
+  become: true
+
+- name: Create service directory and set permissions
+  file:
+    path: "{{ jetty_install_dir }}"
+    state: directory
+    mode: "u+rwx,g-rwx,o-rwx"
+    owner: "{{owner_user}}"
+    group: "{{owner_user}}"
+    recurse: true
+  become: true
+
+- name: Unpack tarball
+  unarchive:
+    src: "/tmp/jetty-{{jetty_version}}.tar.gz"
+    creates: "{{jetty_install_dir}}jetty-distribution-{{jetty_version}}"
+    dest: "{{jetty_install_dir}}"
+    remote_src: yes
+    owner: "{{owner_user}}"
+    group: "{{owner_user}}"
+  become: true

@@ -1,0 +1,68 @@
+# To configure enforcement of using only Autobahn certificates for all SSH activities on the hosts
+
+- name: Put Autobahn Base Configure Script On Image Host
+  copy:
+    src: config_autobahn_base.sh
+    dest: /opt/xcal/apps/local_scripts/config_autobahn_base.sh
+    mode: 0755
+  become: true
+
+# This is intended to be used only when the actual hosts are created. It should be present with all future images and hosts.
+- name: Put Autobahn Local Configure Script On Image Host
+  copy:
+    src: config_autobahn_local.sh
+    dest: /opt/xcal/apps/local_scripts/config_autobahn_local.sh
+    mode: 0755
+  become: true
+
+# This is intended to be used only when the actual hosts are created. It should be present with all future images and hosts.
+- name: Put SSH Authorized Keys Cleanup Script On Image Host
+  copy:
+    src: authkeys_cleanup.sh
+    dest: /opt/xcal/apps/local_scripts/authkeys_cleanup.sh
+    mode: 0755
+  become: true
+
+- name: Create authorized_principals Directory
+  become: true
+  ansible.builtin.file:
+    path: /etc/ssh/authorized_principals
+    state: directory
+    mode: '0755'
+
+# Set up authorized_principals for custom users. Only for CCP. Should only be run for the Boilerplate.
+- name: Creating authorized_principals files for all our users for CCP
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    line: coast.coast-services.coast
+    create: yes
+    mode: 0644
+  loop:
+    - /etc/ssh/authorized_principals/rocky
+    - /etc/ssh/authorized_principals/xdeploy
+    - /etc/ssh/authorized_principals/xvpcs
+    - /etc/ssh/authorized_principals/coast
+  when: platform == "ccp"
+
+# Set up authorized_principals for custom users. Only for AWS. Should only be run for the Boilerplate.
+- name: Creating authorized_principals files for all our users for AWS
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    line: coast.coast-services.coast
+    create: yes
+    mode: 0644
+  loop:
+    - /etc/ssh/authorized_principals/ec2-user
+    - /etc/ssh/authorized_principals/xdeploy
+    - /etc/ssh/authorized_principals/xvpcs
+    - /etc/ssh/authorized_principals/coast
+  when: platform == "aws"
+
+# This is safe to run on the image host
+- name: Running Autobahn Base Configure Script
+  shell: /bin/bash /opt/xcal/apps/local_scripts/config_autobahn_base.sh
+  become: true
+
+# The config_autobahn_local and authkeys_cleanup scripts will be run when the hosts are created.

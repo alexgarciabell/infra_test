@@ -1,0 +1,30 @@
+---
+# Add xdeploy user and their necessary keys/settings
+
+- name: Adding xdeploy user
+  become: true
+  user:
+    name: xdeploy
+    shell: /bin/bash
+
+- name: Adding SSH authorized keys entry for xdeploy user on coast dev jump hosts
+  become: true
+  authorized_key:
+    user: xdeploy
+    key: "{{ lookup('file', '../files/users/id_rsa_coast_dev.pub') }}"
+  #when: not prod
+
+- name: Adding SSH authorized keys entry for xdeploy user on coast prod jump hosts
+  become: true
+  authorized_key:
+    user: xdeploy
+    key: "{{ lookup('file', '../files/users/id_rsa_coast_prod.pub') }}"
+  #when: prod
+
+- name: Allowing password-less sudo access to xdeploy
+  become: true
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "xdeploy ALL"
+    line: "xdeploy ALL = NOPASSWD: ALL"
+    state: present

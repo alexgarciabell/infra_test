@@ -1,0 +1,1 @@
+{{ lookup('hashi_vault', 'secret=/secret/appds/{{ cert_name }}/pem:value auth_method=approle role_id={{ service_name }} secret_id=None url=https://current.vault.do.xcal.tv:8443') }}

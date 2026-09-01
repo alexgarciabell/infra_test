@@ -1,0 +1,9 @@
+---
+- name: reload systemctl daemon
+  command: systemctl daemon-reload
+
+#- name: restart vector
+#  command: systemctl restart vector
+
+#- name: restart vector init.d
+#  command: service vector restart

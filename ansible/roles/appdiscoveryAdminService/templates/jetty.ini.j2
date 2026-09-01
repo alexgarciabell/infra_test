@@ -1,0 +1,59 @@
+# Note: These properties need to be internalized
+
+#Disables the warning message concerning having the start.ini on the service path
+--module=home-base-warning
+
+#module list
+--module=ext
+--module=resources
+--module=server
+--module=http
+--module=jsp
+--module=websocket
+--module=jstl
+--module=deploy
+
+#Enabling SSL
+--module=ssl
+--module=https
+
+etc/jetty-https.xml
+etc/jetty-http.xml
+etc/jetty-logging.xml
+etc/jetty-stats.xml
+
+#"Configures which port the SSL/TLS Connector should listen on."
+#Previous Jetty SSL port
+#jetty.ssl.port=9443
+#For implementing UI Backend-SSL V1, the local HAProxy will send to the Jetty SSL port.
+#Redirection should be handled properly.
+jetty.ssl.port=9444
+
+#"If a webapp needs to redirect to a secure version of the same resource, then this is the port reported back on the response location line
+#(having this be separate is useful if you have something sitting in front of Jetty, such as a Load Balancer or proxy)."
+#Previous Jetty SSL port
+#jetty.httpConfig.securePort=9443
+#For implementing UI Backend-SSL V1, the local HAProxy will send to the Jetty SSL port.
+#Redirection should be handled properly.
+jetty.httpConfig.securePort=9444
+
+#The Jetty Min/Max configurations in 9.1.x (9.1.0), 9.3.x (9.3.7), and 9.4.x (9.4.7) all can
+# use threads.min/max to set the Jetty threads, but are deprecated at least from 9.3.x. To
+# avoid any confusion, both settings to set the thread floor/ceiling are being added here.
+
+threads.min=10
+jetty.threadPool.minThreads=10
+
+threads.max=200
+jetty.threadPool.maxThreads=200
+
+threads.timeout=60000
+jetty.threadPool.idleTimeout=60000
+
+jetty.dump.start=false
+jetty.server.dumpAfterStart=false
+
+jetty.dump.stop=false
+
+# Vault Properties
+{{ lookup('hashi_vault', 'secret=/secret/appds/appdiscoveryAdminService/{{ env_type }}/jettykeystorepwd:value auth_method=approle role_id=appdiscoveryAdminService secret_id=None url=https://current.vault.do.xcal.tv:8443') }}

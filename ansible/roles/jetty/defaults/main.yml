@@ -1,0 +1,6 @@
+---
+# defaults file for jetty
+jetty_version: 9.4.6.v20170531
+jetty_url: "https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-distribution/{{jetty_version}}/jetty-distribution-{{jetty_version}}.tar.gz"
+jetty_install_dir: "/opt/xcal/apps/"
+owner_user: "xdeploy"

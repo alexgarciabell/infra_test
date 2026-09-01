@@ -1,0 +1,14 @@
+#!/bin/bash
+# chkconfig: 345 99 1
+# description: service to start hatsmaker
+# /etc/init.d/hatsmaker
+
+case "$1" in
+	start|stop|restart)
+		sudo su - xdeploy -c "/opt/xcal/apps/hatsmaker/bin/run-hatsmaker.sh $1"
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+esac
+exit 0

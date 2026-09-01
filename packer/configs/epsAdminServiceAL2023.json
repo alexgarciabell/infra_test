@@ -1,0 +1,98 @@
+{
+  "variables": {
+    "aws_access_key": "{{env `bamboo_AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `bamboo_AWS_SECRET_ACCESS_KEY`}}",
+    "artifact_version": "{{env `ARTIFACT_VERSION`}}",
+    "vpc_id": "{{env `VPC_ID`}}",
+    "subnet_id": "{{env `SUBNET_ID`}}",
+    "ec2_region": "{{env `EC2_REGION`}}",
+    "ami_name": "icfar-epsui-{{isotime \"02-Jan-2006-03-04-05\"}}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "vpc_id": "{{user `vpc_id`}}",
+      "region": "{{user `ec2_region`}}",
+      "subnet_id": "{{user `subnet_id`}}",
+      "source_ami_filter": {
+        "filters": {
+          "virtualization-type": "hvm",
+          "name": "icfar-boilerplate-*",
+          "root-device-type": "ebs",
+          "tag:stable": "true"
+        },
+        "owners": ["self"],
+        "most_recent": true
+      },
+      "instance_type": "m5.large",
+      "ssh_username": "ec2-user",
+      "ami_name": "{{user `ami_name`}}",
+      "ami_description": "{{user `ami_name`}}",
+      "ami_regions": ["us-east-1", "us-west-2"],
+      "tags": {
+        "Name": "{{user `ami_name`}}",
+        "date-created": "{{isotime \"02-Jan-2006\"}}",
+        "packer-generated": "true",
+        "stable": "true",
+        "artifact_version": "{{user `artifact_version`}}",
+        "built_from_ami_name": "{{.SourceAMIName}}",
+        "opens": "true",
+        "crowdstrike": "true",
+        "splunk": "false",
+        "vector": "true",
+        "elasticsearch": "true",
+        "notes": "Service AMI For EPS Admin (AL2023)"
+      },
+      "run_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "run_volume_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "snapshot_tags": {
+        "Name": "{{user `ami_name`}}",
+        "date-created": "{{isotime \"02-Jan-2006\"}}",
+        "packer-generated": "true",
+        "stable": "true",
+        "artifact_version": "{{user `artifact_version`}}",
+        "built_from_ami_name": "{{.SourceAMIName}}",
+        "opens": "true",
+        "crowdstrike": "true",
+        "splunk": "false",
+        "vector": "true",
+        "elasticsearch": "true",
+        "notes": "Service AMI For EPS Admin - Snapshot (AL2023)"
+      },
+      "metadata_options" : {
+        "http_endpoint" : "enabled",
+        "http_tokens" : "required",
+        "http_put_response_hop_limit" : 1
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible-local",
+      "playbook_dir": "../../ansible/plays/",
+      "playbook_file": "../../ansible/plays/epsAdminServiceAL2023.yml",
+      "role_paths": ["../../ansible/roles/boilerplateAL2023", "../../ansible/roles/atlas-yumrepoAL2023", "../../ansible/roles/java", "../../ansible/roles/jetty", "../../ansible/roles/epsAdminService", "../../ansible/roles/eracent-installer"],
+      "extra_arguments": ["-vvv", "--extra-vars \"artifact_version={{user `artifact_version`}} role_id={{user `ROLE_ID`}} secret_id={{user `SECRET_ID`}}\""]
+    },
+    {
+      "type": "shell",
+      "remote_folder": "/home/ec2-user",
+      "inline": [
+        "sudo cp -r /tmp/packer-provisioner-ansible-local /home/ec2-user"
+      ]
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "epsadmin_al2023_result_{{isotime \"02-Jan-2006\"}}.json",
+      "strip_path": true
+    }
+  ]
+}

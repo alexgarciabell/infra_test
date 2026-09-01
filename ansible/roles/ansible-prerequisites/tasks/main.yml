@@ -1,0 +1,63 @@
+- name: Bootstrap python installation
+  raw: "test -e /usr/bin/python || sudo yum --assumeyes install python"
+  changed_when: false
+  tags:
+    - skip_ansible_lint
+
+- name: Installing packages used by Ansible modules
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - zip
+    - unzip
+    - openssh-clients
+    - python
+    - python-pip
+#    - python3
+#    - python3-pip
+
+- name: Adding /usr/local/sbin and bin to secure_path
+  become: true
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '#?\s*Defaults\s*secure_path\s*=\s*.*'
+    line: 'Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin'
+    validate: visudo -cf %s
+
+- name: Installing pip python module manager
+  become: true
+  easy_install:
+    name: pip
+    state: present
+
+- name: Installing python modules used by Ansible modules (pip)
+  become: true
+  pip:
+    name: "{{ item }}"
+    executable: pip
+    state: present
+  loop:
+    - lxml
+    - awscli==1.16.300
+    - route53==1.0.1
+    - boto==2.49.0
+    - boto3==1.14.48
+#gdejes200 - 09-18-2020 - Due to an issue with a Boto3 update (https://github.com/boto/boto3/issues/2596) these versions
+# are being set statically based on a last known good host. When there is a later version that doesn't break the AWS CLI,
+# then these should be freeform again.
+
+#- name: Installing python modules used by Ansible modules (pip3)
+#  become: true
+#  pip:
+#    name: "{{ item }}"
+#    executable: pip3
+#    state: present
+#  loop:
+#    - lxml
+#    - awscli
+#    - route53
+#    - boto
+#    - boto3

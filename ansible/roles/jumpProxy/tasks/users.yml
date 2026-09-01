@@ -1,0 +1,86 @@
+---
+# Add coast user and their keys/settings
+
+- name: Adding coast user
+  become: true
+  user:
+    name: coast
+    shell: /bin/bash
+
+- name: Allowing password-less sudo access to coast
+  become: true
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "coast ALL"
+    line: "coast ALL=(ALL) NOPASSWD: ALL"
+    state: present
+
+# Add xdeploy user and their necessary keys/settings
+
+- name: Adding xdeploy user
+  become: true
+  user:
+    name: xdeploy
+    shell: /bin/bash
+
+- name: Create .ssh dir
+  become: true
+  ansible.builtin.file:
+    path: /home/xdeploy/.ssh
+    state: directory
+    owner: "xdeploy"
+    group: "xdeploy"
+    mode: '0700'
+
+- name: Adding SSH authorized keys entry for xdeploy user - concourse prod
+  become: true
+  authorized_key:
+    user: xdeploy
+    key: "{{ lookup('file', '../files/authorized_keys/concourse_prod.pub') }}"
+  when: run_number == "b" and env_type == "prod"
+
+- name: Pull private key from Hashicorp Vault - Env Based
+  copy:
+    content: "{{ lookup('hashi_vault', 'secret=secret/appds/jumpProxy/{{ env_type }}/ssh_private_key:value auth_method=approle role_id=far secret_id=None url=https://current.vault.do.xcal.tv:8443')}}"
+    dest: "/home/xdeploy/.ssh/id_rsa_coast_{{ env_type }}"
+    owner: "xdeploy"
+    group: "xdeploy"
+    mode: 0600
+  become: true
+  when: run_number == "b"
+
+- name: Create SSH config file
+  become: true
+  template:
+    src: ssh_config.j2
+    dest: "/home/xdeploy/.ssh/config"
+    mode: 0600
+    owner: "xdeploy"
+    group: "xdeploy"
+  when: run_number == "b"
+
+- name: Allowing password-less sudo access to xdeploy
+  become: true
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "xdeploy ALL"
+    line: "xdeploy ALL=(ALL) NOPASSWD: ALL"
+    state: present
+
+# Note: This is intended to be used for the "xdeploy" user. If this is a policy violation, then the process needs to be adjusted.
+- name: Disable password rotation for xdeploy
+  become: true
+  shell:
+    cmd: chage -M -1 xdeploy
+
+# Note: This is intended to be used for the "coast" user. If this is a policy violation, then the process needs to be adjusted.
+- name: Disable password rotation for coast
+  become: true
+  shell:
+    cmd: chage -M -1 coast
+
+# Note: This is only due to certain applications needing to run as root. This may be a policy violation.
+- name: Disable password rotation for root
+  become: true
+  shell:
+    cmd: chage -M -1 root

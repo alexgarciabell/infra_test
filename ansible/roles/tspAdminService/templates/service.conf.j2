@@ -1,0 +1,17 @@
+#!/bin/bash
+# chkconfig: 345 99 1
+# description: service to start {{ service_name }}
+#
+#
+# {{ansible_managed}}
+
+export JETTY_USER={{owner_user}}
+case "$1" in
+  start|stop|restart)
+    sudo su - $JETTY_USER -c "/opt/xcal/apps/{{ service_name }}/bin/wrapper.sh {{ service_listen_port }} {{ service_stop_port }} {{ service_jmx_port }} $1"
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+exit 0

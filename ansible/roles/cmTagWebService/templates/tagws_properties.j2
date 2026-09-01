@@ -1,0 +1,48 @@
+# External service.properties template for Tagging Portal.
+
+# Note: These properties need to be internalized
+
+# User Management Settings
+authProvider=xerxes
+#aclJwtTimeoutMinutes={{ acl_session_time }}
+#aclApplicationName={{ acl_service_name }}
+xerxes.partnerId=comcast
+xerxes.authUrl=https://enterprise.xerxes.comcast.net
+{% if env_type == "ci" %}
+#aclServiceAccessUrl=https://ci.aclauthservice.ccp.xcal.tv/aclAuthService/
+xerxes.clientId=tagging_portal_ci
+{% elif env_type == "prod" %}
+#aclServiceAccessUrl=https://current.aclauthservice.ccp.xcal.tv/aclAuthService/
+xerxes.clientId=tagging_portal_prod
+{% else %}
+#User Management Configs Not Set - Unrecognized Environment
+{% endif %}
+
+# SAT properties
+satPublicKeysUrl=https://sat-prod.codebig2.net/keys/
+satKeystoreFilepath=/opt/xcal/apps/cmTagWebService/resources/satKeystore/
+satFailOpen=false
+satGracePeriod=604800000
+
+# TagDS caller settings
+{% if env_type == "ci" %}
+cmtagws.caller.cmtagdsendpoint=https://ci.cmtagds.coast.xcal.tv:9481/cmTagDataService
+cmtagws.caller.useragent=Tagging_Service_Portal_CI
+cmtagws.sat.requesteruseragent=Tagging_Service_Portal_CI
+{% elif env_type == "prod" %}
+cmtagws.caller.cmtagdsendpoint=https://current.cmtagds.coast.xcal.tv:9481/cmTagDataService
+cmtagws.caller.useragent=Tagging_Service_Portal_PROD
+cmtagws.sat.requesteruseragent=Tagging_Service_Portal_PROD
+{% else %}
+#User Management Configs Not Set - Unrecognized Environment
+{% endif %}
+
+cmtagws.sat.requesterurl=https://sat-prod.codebig2.net/v2/oauth/token
+cmtagws.sat.refreshtimemin=1435
+cmtagws.sat.jwkRegions=us
+cmtagws.satPublicKeysUrl=stub
+cmtagws.satKeystoreFilepath=stub
+
+
+{{ lookup('hashi_vault', 'secret=kv2/data/xvp-cs/appds/cmTagWebService/{{ env_type }}:value token={{client_token}} url=https://or.vault.comcast.com') }}
+

@@ -1,0 +1,7 @@
+# defaults file for inplace
+service_install_dir: "/opt/xcal/apps/{{ servicename }}"
+artifact_repo: https://artifactory.comcast.com/artifactory/x1IcsCoreServices-libs-releases/
+artifact_repo_snapshots: https://artifactory.comcast.com/artifactory/x1IcsCoreServices-libs-snapshots
+owner_user: xdeploy
+rollback_flag: false
+sleep_time: 0

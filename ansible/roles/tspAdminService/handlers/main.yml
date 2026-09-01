@@ -1,0 +1,26 @@
+---
+# handlers file for tsp
+- name: Restart service
+  service:
+    name: "{{ service_name }}"
+    state: restarted
+    sleep: "{{sleep_time}}"
+    enabled: yes
+  become: true
+
+- name: Invalidate Vault client token
+  uri:
+    url: "https://or.vault.comcast.com/v1/auth/token/revoke-self"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ client_token }}"
+    status_code: 204
+  ignore_errors: no
+  no_log: true
+  
+- name: Restart haproxy
+  service:
+    name: "haproxy"
+    state: restarted
+    enabled: yes
+  become: true

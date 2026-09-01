@@ -1,0 +1,16 @@
+output "nlb_id" {
+  description = "The ID of the NLB."
+  value       = "${module.prod-east-configadmin.nlb_id}"
+}
+output "nlb_name" {
+  description = "The name of the NLB."
+  value       = "${module.prod-east-configadmin.nlb_name}"
+}
+output "nlb_dns_name" {
+  description = "The dns name of the NLB."
+  value       = "${module.prod-east-configadmin.nlb_dns_name}"
+}
+output "target_group_name" {
+  description = "The name of the targetgroup name."
+  value       = "${module.prod-east-configadmin.target_group_name}"
+}

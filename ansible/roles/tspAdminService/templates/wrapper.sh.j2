@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# cmd: jetty-wrapper.sh {{ service_listen_port }} {{ service_stop_port }} {{ service_jmx_port }} start
+#                        $1   $2   $3   $4
+#                                          Listen Stop JMX
+# Updated for new unified path names
+
+JETTY_HOME=/opt/xcal/apps/{{ service_name }}
+export JAVA_HOME=/usr/java/latest
+JETTY_STOP=$2
+JETTY_JMX=$3
+MYCMD=$4
+DEFAULTIFACE=`netstat -rn | grep ^0.0 | awk '{print $8}'`
+IPADDRESS=`/sbin/ifconfig $DEFAULTIFACE | grep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'`
+
+export JETTY_PORT=$1
+export JETTY_USER={{ owner_user }}
+export JETTY_RUN=$JETTY_HOME
+export JAVA_OPTIONS="
+-Dlogback.configurationFile=$JETTY_HOME/resources/logback.xml
+-DserviceName={{ service_name }}
+-DappConfig={{ properties_dir }}/service.properties
+-DenvName={{ env_type }}-{{ datacenter }}
+-DenvType={{ env_type }}
+-DdcName={{ datacenter }}
+-DuseVault={{ use_vault }}
+-DvaultAppRoleId={{ role_id }}
+-DvaultSecretId={{ secret_id }}
+-Dhttps.protocols=TLSv1.2
+-Dcom.sun.management.jmxremote
+-Djava.rmi.server.hostname=$IPADDRESS
+-Dcom.sun.management.jmxremote.port=$JETTY_JMX
+-Dcom.sun.management.jmxremote.authenticate=false
+-Dcom.sun.management.jmxremote.ssl=false
+-Dcom.sun.management.jmxremote.rmi.port=$JETTY_JMX
+-Djetty.logs=$JETTY_HOME/logs
+-Djetty.home=$JETTY_HOME
+-Djetty.base=$JETTY_HOME
+-Djava.io.tmpdir=$JETTY_HOME/tmp
+-DENABLE_OBIEE_SCP_URL_PROP=false
+-Dtheplatform.log.dir=$JETTY_HOME/logs
+-Djava.library.path=$JETTY_HOME/lib/ext
+-DSTOP.PORT=$JETTY_STOP
+-Djetty.http.port=$JETTY_PORT
+-verbose:gc
+-XX:+UseConcMarkSweepGC
+-XX:+CMSClassUnloadingEnabled
+-XX:+PrintGCDetails
+-Xloggc:logs/gc.log
+-Xms{{ heapMin }}
+-Xmx{{ heapMax }}
+-XX:MaxMetaspaceSize={{ maxMetaspaceSize }}
+-XX:NewSize={{ heapNewSize }}
+-XX:MaxNewSize={{ heapMaxNewSize }}
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:HeapDumpPath=$JETTY_HOME/logs/{{ service_name }}-`date +%Y_%m_%d-%H_%M`.heapDump
+-XX:OnOutOfMemoryError=$JETTY_HOME/bin/OOM.rb
+{{ extra_jvm_args }}
+"
+
+start() {
+  cd $JETTY_HOME
+  mkdir -p $JETTY_HOME/work
+  mkdir -p $JETTY_HOME/tmp
+  nohup java $JAVA_OPTIONS -jar start.jar jetty.http.port=$JETTY_PORT> logs/{{ service_name }}.stdout.log 2> logs/{{ service_name }}.stderr.log &
+  PID=$!
+  disown $PID
+  echo $PID > $JETTY_HOME/jetty.pid
+  nohup $JETTY_HOME/bin/util_logger.sh $PID > logs/util_logger.log 2>&1 &
+  disown $!
+}
+
+stop() {
+  pkill -f $JETTY_HOME/logs
+  pkill -9 -f $JETTY_HOME/logs
+  rm $JETTY_HOME/jetty.pid
+}
+
+case "$4" in
+  "start")
+start
+;;
+  "stop")
+stop
+;;
+  "restart")
+stop
+start
+;;
+esac
+exit 0

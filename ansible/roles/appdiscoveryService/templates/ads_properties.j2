@@ -1,0 +1,13 @@
+# External service.properties template for ADS DS
+
+# Note: These properties need to be internalized
+
+# SAT Properties
+satFailOpen=false
+satGracePeriod=604800000
+satPublicKeysUrl=stub
+satKeystoreFilepath=stub
+sat.jwkRegions=us
+
+# Vault Properties
+{{ lookup('hashi_vault', 'secret=/secret/appds/{{ service_name }}/{{ env_type }}:value auth_method=approle role_id={{ service_name }} secret_id=None url=https://current.vault.do.xcal.tv:8443') }}

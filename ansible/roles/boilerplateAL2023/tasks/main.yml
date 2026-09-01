@@ -1,0 +1,98 @@
+---
+- name: Uninstall incompatible packages
+  become: true
+  yum:
+    name:
+      - awscli
+      - urllib3
+    state: absent
+# this task moved from ansible-prerequisites, because these are not prerequisites for ansible,
+# rather nice to have utils for hosts in AWS
+- name: Former ansible-prerequisites
+  become: true
+  pip:
+    name: "{{ item }}"
+    executable: pip
+    state: present
+  loop:
+    - urllib3
+    - awscli
+    - route53
+    - boto3
+
+# tasks file for boilerplate
+- name: Installing basic apps
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - nc
+    - vi
+    - nano
+    - git
+    - tcpdump
+    - wget
+    - traceroute
+
+- name: Remove pre-installed apps
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: removed
+  loop:
+    - telnet
+
+- name: Updating all packages to latest
+  become: true
+  yum:
+    name: "*"
+    state: latest
+    disable_gpg_check: true
+    #security: true
+
+- name: set time zone to utc
+  copy:
+    src: "/usr/share/zoneinfo/UCT"
+    dest: "/etc/localtime"
+    mode: 0644
+    owner: "root"
+    group: "root"
+  become: true
+
+- name: Checking if chrony is Synchronized
+  shell: chronyc tracking
+
+- name: Placing SSH login banner
+  become: true
+  copy:
+    src: ../files/security/sshd_banner.txt
+    dest: /etc/ssh/sshd_banner.txt
+  notify: Restart SSH
+
+- name: Enabling SSH login banner
+  become: true
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^#?Banner"
+    line: "Banner /etc/ssh/sshd_banner.txt"
+  notify: Restart SSH
+
+- name: Configuring User(s)
+  import_tasks: users.yml
+
+- name: Applying kernel changes
+  import_tasks: kernel.yml
+
+- name: Apply logrotate configurations
+  import_tasks: logrotate_setup.yml
+
+#This will be used to store various scripts meant to be run on the host, including the image base host
+- name: Create script directory
+  file:
+    path: "/opt/xcal/apps/local_scripts"
+    owner: "root"
+    group: "root"
+    state: directory
+    mode: 0755
+  become: true

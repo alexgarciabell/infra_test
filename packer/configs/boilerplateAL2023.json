@@ -1,0 +1,109 @@
+{
+  "_comment": "Use this with Packer 1.8.7 or greater",
+  "variables": {
+    "aws_access_key": "{{env `bamboo_AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `bamboo_AWS_SECRET_ACCESS_KEY`}}",
+    "vpc_id": "{{env `VPC_ID`}}",
+    "subnet_id": "{{env `SUBNET_ID`}}",
+    "ec2_region": "{{env `EC2_REGION`}}",
+    "ami_name": "icfar-boilerplate-{{isotime \"02-Jan-2006-03-04-05\"}}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "vpc_id": "{{user `vpc_id`}}",
+      "region": "{{user `ec2_region`}}",
+      "subnet_id": "{{user `subnet_id`}}",
+      "source_ami_filter": {
+        "filters": {
+          "virtualization-type": "hvm",
+          "architecture": "x86_64",
+          "name": "Comcast Amazon Linux 2023 -*",
+          "root-device-type": "ebs"
+        },
+        "owners": ["713513710664"],
+        "most_recent": true
+      },
+      "instance_type": "c5.large",
+      "ssh_username": "ec2-user",
+      "ami_name": "{{user `ami_name` | clean_resource_name}}",
+      "ami_description": "{{user `ami_name`}}",
+      "ami_regions": ["us-east-1", "us-east-2", "us-west-2"],
+      "tags": {
+        "Name": "{{user `ami_name`}}",
+        "date-created": "{{isotime \"02-Jan-2006\"}}",
+        "packer-generated": "true",
+        "stable": "true",
+        "built_from_ami_name": "{{.SourceAMIName}}",
+        "opens": "true",
+        "crowdstrike": "true",
+        "splunk": "false",
+        "vector": "false",
+        "elasticsearch": "false",
+        "notes": "Boilerplate for XVP CS Services - Amazon Linux 2023"
+      },
+      "run_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "run_volume_tags": {
+        "Name": "{{user `ami_name`}}"
+      },
+      "snapshot_tags": {
+        "Name": "{{user `ami_name`}}",
+        "date-created": "{{isotime \"02-Jan-2006\"}}",
+        "packer-generated": "true",
+        "stable": "true",
+        "built_from_ami_name": "{{.SourceAMIName}}",
+        "opens": "true",
+        "crowdstrike": "true",
+        "splunk": "false",
+        "vector": "false",
+        "elasticsearch": "false",
+        "notes": "Boilerplate for XVP CS Services - Amazon Linux 2023 - Snapshot"
+      },
+      "metadata_options" : {
+        "http_endpoint" : "enabled",
+        "http_tokens" : "required",
+        "http_put_response_hop_limit" : 1
+      },
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/xvda",
+          "encrypted": "false",
+          "volume_size": "8",
+          "volume_type": "gp3",
+          "delete_on_termination": true
+        }
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "remote_folder": "/home/ec2-user",
+      "inline": [
+        "sudo systemctl stop EracentEDAService.service",
+        "sudo systemctl stop EracentEPAService.service",
+        "sudo yum install -y python-pip",
+        "sudo pip3 install ansible",
+        "sudo pip install --ignore-installed hvac==0.4.0",
+        "sudo pip3 install lxml"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_dir": "../../ansible/plays/",
+      "playbook_file": "../../ansible/plays/boilerplateAL2023.yml",
+      "role_paths": ["../../ansible/roles/boilerplateAL2023", "../../ansible/roles/atlas-yumrepoAL2023", "../../ansible/roles/vector", "../../ansible/roles/crowdstrike", "../../ansible/roles/opens", "../../ansible/roles/eracent-cleaner", "../../ansible/roles/autobahn-config"]
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "boilerplate_al2023_result_{{isotime \"02-Jan-2006\"}}.json",
+      "strip_path": true
+    }
+  ]
+}
